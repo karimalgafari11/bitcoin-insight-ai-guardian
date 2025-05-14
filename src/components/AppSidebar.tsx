@@ -2,7 +2,7 @@
 import { 
   BarChart3, 
   BookText, 
-  Candlestick, 
+  ChartCandlestick, 
   CircleHelp,
   Home, 
   Newspaper, 
@@ -46,7 +46,7 @@ const AppSidebar = () => {
     {
       title: "تحليل الشموع",
       path: "/candlestick-analysis",
-      icon: Candlestick,
+      icon: ChartCandlestick,
     },
     {
       title: "الأخبار والمعنويات",
