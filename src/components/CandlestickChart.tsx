@@ -9,55 +9,19 @@ import {
   YAxis, 
   Tooltip, 
   CartesianGrid, 
-  Bar,
-  ReferenceLine
+  Bar
 } from "recharts";
 import { CandleData } from "./CandleDetail";
+import { generateCandlestickData, priceFormatter } from "@/utils/candlestickUtils";
+import { CandleWicks, CandleBodies } from "./chart/CandleRenders";
+import PatternMarkers from "./chart/PatternMarkers";
+import SelectionIndicator from "./chart/SelectionIndicator";
 
 type CandlestickChartProps = {
   symbol: string;
   timeframe: string;
   className?: string;
   onSelectCandle?: (candle: CandleData | null) => void;
-};
-
-// Generate demo candlestick data
-const generateCandlestickData = (count: number) => {
-  const data = [];
-  let date = new Date();
-  let close = 60000;
-  
-  for (let i = 0; i < count; i++) {
-    const change = Math.random() > 0.5 ? 1 : -1;
-    const volatility = Math.random() * 2000;
-    
-    close = close + (volatility * change);
-    const open = close - (Math.random() > 0.5 ? -1 : 1) * Math.random() * 1000;
-    const high = Math.max(open, close) + Math.random() * 500;
-    const low = Math.min(open, close) - Math.random() * 500;
-    const volume = Math.round(Math.random() * 1000000);
-    
-    // Format date based on timeframe
-    const formattedDate = date.toLocaleDateString('en-US', { 
-      month: 'short',
-      day: 'numeric'
-    });
-    
-    data.unshift({
-      date: formattedDate,
-      open: parseFloat(open.toFixed(2)),
-      high: parseFloat(high.toFixed(2)),
-      low: parseFloat(low.toFixed(2)),
-      close: parseFloat(close.toFixed(2)),
-      volume,
-      fillColor: open > close ? "#f6465d" : "#0ecb81"
-    });
-    
-    // Move back in time
-    date = new Date(date.getTime() - 24 * 60 * 60 * 1000);
-  }
-  
-  return data;
 };
 
 const CandlestickChart = ({ symbol, timeframe, className, onSelectCandle }: CandlestickChartProps) => {
@@ -99,11 +63,6 @@ const CandlestickChart = ({ symbol, timeframe, className, onSelectCandle }: Cand
     
     return () => window.removeEventListener("resize", updateHeight);
   }, [symbol, timeframe, onSelectCandle]);
-  
-  // Format price for tooltip and axis
-  const priceFormatter = (value: number) => {
-    return `$${value.toLocaleString()}`;
-  };
 
   const handleClick = (data: any, index: number) => {
     if (data && data.activePayload && data.activePayload.length) {
@@ -172,35 +131,9 @@ const CandlestickChart = ({ symbol, timeframe, className, onSelectCandle }: Cand
             fill="transparent" 
             stroke="transparent"
           />
-          {data.map((entry, index) => (
-            <ReferenceLine
-              key={`candle-${index}`}
-              x={entry.date}
-              yAxisId="price"
-              stroke={selectedCandleIndex === index ? "#9b87f5" : "transparent"}
-              strokeWidth={selectedCandleIndex === index ? 2 : 1}
-              segment={[
-                { x: index, y: entry.low },
-                { x: index, y: entry.high }
-              ]}
-            />
-          ))}
-          {data.map((entry, index) => (
-            <ReferenceLine
-              key={`body-${index}`}
-              yAxisId="price"
-              x={entry.date}
-              stroke={selectedCandleIndex === index 
-                ? "#9b87f5" 
-                : entry.open > entry.close ? "#f6465d" : "#0ecb81"
-              }
-              strokeWidth={selectedCandleIndex === index ? 10 : 8}
-              segment={[
-                { x: index, y: entry.open },
-                { x: index, y: entry.close }
-              ]}
-            />
-          ))}
+          
+          <CandleWicks data={data} selectedCandleIndex={selectedCandleIndex} />
+          <CandleBodies data={data} selectedCandleIndex={selectedCandleIndex} />
           
           {/* Volume bars */}
           <Bar 
@@ -212,27 +145,13 @@ const CandlestickChart = ({ symbol, timeframe, className, onSelectCandle }: Cand
           />
           
           {/* Pattern markers */}
-          {patterns.map((pattern, index) => (
-            <ReferenceLine
-              key={`pattern-${index}`}
-              x={data[pattern.index]?.date}
-              yAxisId="price"
-              stroke="#ffcc00"
-              strokeWidth={1}
-              strokeDasharray="3 3"
-            />
-          ))}
+          <PatternMarkers patterns={patterns} data={data} />
         </ComposedChart>
       </ResponsiveContainer>
 
-      {selectedCandleIndex !== null && (
-        <div className="absolute top-2 left-2 bg-card/80 backdrop-blur-sm rounded px-2 py-1 text-xs">
-          {t("الشمعة المحددة:", "Selected candle:")} {data[selectedCandleIndex]?.date}
-        </div>
-      )}
+      <SelectionIndicator selectedCandleIndex={selectedCandleIndex} data={data} />
     </div>
   );
 };
 
 export default CandlestickChart;
-
