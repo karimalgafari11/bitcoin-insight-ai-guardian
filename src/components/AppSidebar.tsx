@@ -17,59 +17,61 @@ import {
   SidebarHeader,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { Link, useLocation } from "react-router-dom";
+import { useLanguage } from "@/contexts/LanguageContext";
+import LanguageSwitcher from "./LanguageSwitcher";
 
 const AppSidebar = () => {
   const location = useLocation();
+  const { t } = useLanguage();
   
   const navigationItems = [
     {
-      title: "الرئيسية",
+      title: t("الرئيسية", "Home"),
       path: "/",
       icon: Home,
     },
     {
-      title: "التحليل",
+      title: t("التحليل", "Analysis"),
       path: "/analysis",
       icon: TrendingUp,
     },
     {
-      title: "الأنماط الفنية",
+      title: t("الأنماط الفنية", "Technical Patterns"),
       path: "/technical-patterns",
       icon: BarChart3,
     },
     {
-      title: "تحليل الشموع",
+      title: t("تحليل الشموع", "Candlestick Analysis"),
       path: "/candlestick-analysis",
       icon: ChartCandlestick,
     },
     {
-      title: "الأخبار والمعنويات",
+      title: t("الأخبار والمعنويات", "News & Sentiment"),
       path: "/news-sentiment",
       icon: Newspaper,
     },
     {
-      title: "دفتر التداول",
+      title: t("دفتر التداول", "Trading Journal"),
       path: "/trading-journal",
       icon: BookText,
     },
     {
-      title: "حاسبة المخاطر",
+      title: t("حاسبة المخاطر", "Risk Calculator"),
       path: "/risk-calculator",
       icon: Calculator,
     },
     {
-      title: "التعليم",
+      title: t("التعليم", "Education"),
       path: "/education",
       icon: CircleHelp,
     },
     {
-      title: "الإعدادات",
+      title: t("الإعدادات", "Settings"),
       path: "/settings",
       icon: SettingsIcon,
     },
@@ -77,8 +79,9 @@ const AppSidebar = () => {
 
   return (
     <Sidebar>
-      <SidebarHeader className="flex items-center px-4 py-5">
+      <SidebarHeader className="flex items-center justify-between px-4 py-5">
         <span className="text-xl font-semibold">BitSight</span>
+        <LanguageSwitcher />
       </SidebarHeader>
       
       <SidebarContent>

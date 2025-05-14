@@ -8,8 +8,9 @@ import TimeframeSelector from "@/components/TimeframeSelector";
 import TechnicalPatternsList from "@/components/TechnicalPatternsList";
 import PatternDescription from "@/components/PatternDescription";
 import { PatternData, PatternType } from "@/components/TechnicalPatternCard";
+import { useLanguage } from "@/contexts/LanguageContext";
 
-// بيانات تجريبية للأنماط الفنية
+// Demo data for technical patterns
 const demoPatterns: PatternData[] = [
   {
     id: "1",
@@ -52,10 +53,22 @@ const demoPatterns: PatternData[] = [
 const TechnicalPatterns = () => {
   const [timeframe, setTimeframe] = useState("1d");
   const [selectedPattern, setSelectedPattern] = useState<PatternType | null>("رأس وكتفين");
+  const { t } = useLanguage();
 
   const handleTimeframeChange = (newTimeframe: string) => {
     setTimeframe(newTimeframe);
   };
+
+  const patternTypes = [
+    { ar: "رأس وكتفين", en: "Head & Shoulders" }, 
+    { ar: "مثلث صاعد", en: "Ascending Triangle" }, 
+    { ar: "مثلث هابط", en: "Descending Triangle" }, 
+    { ar: "مثلث متماثل", en: "Symmetrical Triangle" },
+    { ar: "قناة سعرية", en: "Price Channel" },
+    { ar: "قاع مزدوج", en: "Double Bottom" },
+    { ar: "قمة مزدوجة", en: "Double Top" },
+    { ar: "نموذج علم", en: "Flag Pattern" }
+  ];
 
   return (
     <div className="min-h-screen flex w-full">
@@ -63,7 +76,7 @@ const TechnicalPatterns = () => {
       <div className="flex-1 overflow-auto">
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-semibold">الأنماط الفنية</h1>
+            <h1 className="text-2xl font-semibold">{t("الأنماط الفنية", "Technical Patterns")}</h1>
             <div className="flex items-center gap-4">
               <TimeframeSelector onTimeframeChange={handleTimeframeChange} className="flex-row-reverse" />
               <SidebarTrigger />
@@ -71,44 +84,35 @@ const TechnicalPatterns = () => {
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* الرسم البياني الرئيسي */}
+            {/* Main chart */}
             <BitcoinChart timeframe={timeframe} className="lg:col-span-8" />
             
-            {/* قسم الأنماط المكتشفة */}
+            {/* Discovered patterns section */}
             <div className="lg:col-span-4 flex flex-col gap-6">
               <TechnicalPatternsList patterns={demoPatterns} />
             </div>
             
-            {/* معلومات عن النمط المحدد */}
+            {/* Selected pattern information */}
             <PatternDescription patternType={selectedPattern} className="lg:col-span-12" />
             
-            {/* أمثلة على أنماط مختلفة */}
+            {/* Examples of different patterns */}
             <Card className="lg:col-span-12 border-zinc-800">
               <CardHeader>
-                <CardTitle className="text-lg">أنماط فنية للتعلم</CardTitle>
+                <CardTitle className="text-lg">{t("أنماط فنية للتعلم", "Technical Patterns to Learn")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {[
-                    "رأس وكتفين", 
-                    "مثلث صاعد", 
-                    "مثلث هابط", 
-                    "مثلث متماثل",
-                    "قناة سعرية",
-                    "قاع مزدوج",
-                    "قمة مزدوجة",
-                    "نموذج علم"
-                  ].map((pattern) => (
+                  {patternTypes.map((pattern) => (
                     <button
-                      key={pattern}
+                      key={pattern.ar}
                       className={`p-3 text-sm rounded-md border transition-colors ${
-                        selectedPattern === pattern 
+                        selectedPattern === pattern.ar 
                           ? "border-primary bg-primary/10" 
                           : "border-zinc-800 hover:bg-zinc-800/50"
                       }`}
-                      onClick={() => setSelectedPattern(pattern as PatternType)}
+                      onClick={() => setSelectedPattern(pattern.ar as PatternType)}
                     >
-                      {pattern}
+                      {t(pattern.ar, pattern.en)}
                     </button>
                   ))}
                 </div>

@@ -8,9 +8,11 @@ import LatestNews from "@/components/LatestNews";
 import TechnicalIndicators from "@/components/TechnicalIndicators";
 import TimeframeSelector from "@/components/TimeframeSelector";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const Dashboard = () => {
   const [timeframe, setTimeframe] = useState("4h");
+  const { t } = useLanguage();
 
   return (
     <div className="min-h-screen flex w-full">
@@ -18,7 +20,7 @@ const Dashboard = () => {
       <div className="flex-1 overflow-auto">
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-semibold">لوحة تحليل البيتكوين</h1>
+            <h1 className="text-2xl font-semibold">{t("لوحة تحليل البيتكوين", "Bitcoin Analysis Dashboard")}</h1>
             <div className="flex items-center gap-4">
               <SidebarTrigger />
             </div>
@@ -31,7 +33,7 @@ const Dashboard = () => {
               <div className="flex justify-between items-center mb-4">
                 <TimeframeSelector 
                   onTimeframeChange={(newTimeframe) => setTimeframe(newTimeframe)}
-                  className="flex-row-reverse" // Right-to-left layout
+                  className="flex-row-reverse" 
                 />
               </div>
               <BitcoinChart timeframe={timeframe} />

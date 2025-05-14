@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 import Dashboard from "./pages/Dashboard";
 import Analysis from "./pages/Analysis";
 import TechnicalPatterns from "./pages/TechnicalPatterns";
@@ -21,24 +22,26 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <SidebarProvider>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/analysis" element={<Analysis />} />
-            <Route path="/technical-patterns" element={<TechnicalPatterns />} />
-            <Route path="/candlestick-analysis" element={<CandlestickAnalysis />} />
-            <Route path="/news-sentiment" element={<NewsSentiment />} />
-            <Route path="/trading-journal" element={<TradingJournal />} />
-            <Route path="/risk-calculator" element={<RiskCalculator />} />
-            <Route path="/education" element={<Education />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </SidebarProvider>
-      </BrowserRouter>
+      <LanguageProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <SidebarProvider>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/analysis" element={<Analysis />} />
+              <Route path="/technical-patterns" element={<TechnicalPatterns />} />
+              <Route path="/candlestick-analysis" element={<CandlestickAnalysis />} />
+              <Route path="/news-sentiment" element={<NewsSentiment />} />
+              <Route path="/trading-journal" element={<TradingJournal />} />
+              <Route path="/risk-calculator" element={<RiskCalculator />} />
+              <Route path="/education" element={<Education />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </SidebarProvider>
+        </BrowserRouter>
+      </LanguageProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
