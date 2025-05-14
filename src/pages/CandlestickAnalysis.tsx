@@ -9,6 +9,7 @@ import CandlestickChart from "@/components/CandlestickChart";
 import PatternList from "@/components/PatternList";
 import SymbolSelector from "@/components/SymbolSelector";
 import CandleDetail, { CandleData } from "@/components/CandleDetail";
+import PatternDetail from "@/components/chart/PatternDetail";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 const CandlestickAnalysis = () => {
@@ -17,6 +18,7 @@ const CandlestickAnalysis = () => {
   const [symbol, setSymbol] = useState("BTC/USD");
   const [activeTab, setActiveTab] = useState("chart");
   const [selectedCandle, setSelectedCandle] = useState<CandleData | null>(null);
+  const [selectedPattern, setSelectedPattern] = useState<{ type: string; index: number } | null>(null);
 
   const handleTimeframeChange = (tf: any) => {
     setTimeframe(tf);
@@ -68,7 +70,8 @@ const CandlestickAnalysis = () => {
                       />
                       
                       <div className="text-xs text-muted-foreground mt-2 text-center">
-                        {t("انقر على أي شمعة في الرسم البياني لعرض تفاصيلها", "Click on any candle in the chart to view its details")}
+                        {t("انقر على أي شمعة أو نمط في الرسم البياني لعرض تفاصيلها", 
+                          "Click on any candle or pattern in the chart to view details")}
                       </div>
                     </CardContent>
                   </Card>
@@ -87,10 +90,14 @@ const CandlestickAnalysis = () => {
               </Tabs>
             </div>
             
-            <div className="lg:col-span-1">
+            <div className="lg:col-span-1 space-y-6">
               <CandleDetail 
                 selectedCandle={selectedCandle}
                 timeframe={timeframe}
+              />
+              
+              <PatternDetail 
+                pattern={selectedPattern} 
               />
             </div>
           </div>
@@ -101,4 +108,3 @@ const CandlestickAnalysis = () => {
 };
 
 export default CandlestickAnalysis;
-

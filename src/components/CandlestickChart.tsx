@@ -1,6 +1,5 @@
 
 import { useEffect, useState, useRef } from "react";
-import { Card } from "@/components/ui/card";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { 
   ResponsiveContainer, 
@@ -31,6 +30,7 @@ const CandlestickChart = ({ symbol, timeframe, className, onSelectCandle }: Cand
   const containerRef = useRef<HTMLDivElement>(null);
   const [patterns, setPatterns] = useState<any[]>([]);
   const [selectedCandleIndex, setSelectedCandleIndex] = useState<number | null>(null);
+  const [selectedPatternIndex, setSelectedPatternIndex] = useState<number | null>(null);
   
   useEffect(() => {
     // Load candlestick data based on symbol and timeframe
@@ -39,6 +39,8 @@ const CandlestickChart = ({ symbol, timeframe, className, onSelectCandle }: Cand
     
     // Reset selected candle when changing symbol or timeframe
     setSelectedCandleIndex(null);
+    setSelectedPatternIndex(null);
+    
     if (onSelectCandle) {
       onSelectCandle(null);
     }
@@ -46,7 +48,9 @@ const CandlestickChart = ({ symbol, timeframe, className, onSelectCandle }: Cand
     // Simulate finding patterns
     const simulatedPatterns = [
       { index: 24, type: "bullish-engulfing" },
-      { index: 10, type: "hammer" }
+      { index: 10, type: "hammer" },
+      { index: 5, type: "doji" },
+      { index: 18, type: "bearish-engulfing" }
     ];
     setPatterns(simulatedPatterns);
     
@@ -68,9 +72,23 @@ const CandlestickChart = ({ symbol, timeframe, className, onSelectCandle }: Cand
     if (data && data.activePayload && data.activePayload.length) {
       const candleIndex = data.activeTooltipIndex;
       setSelectedCandleIndex(candleIndex);
+      setSelectedPatternIndex(null);
       
       if (onSelectCandle) {
         onSelectCandle(candleIndex !== null ? data.activePayload[0].payload : null);
+      }
+    }
+  };
+
+  const handlePatternSelect = (patternIndex: number | null) => {
+    setSelectedPatternIndex(patternIndex);
+    
+    if (patternIndex !== null && patterns[patternIndex]) {
+      const candleIndex = patterns[patternIndex].index;
+      setSelectedCandleIndex(candleIndex);
+      
+      if (onSelectCandle && candleIndex < data.length) {
+        onSelectCandle(data[candleIndex]);
       }
     }
   };
@@ -145,11 +163,31 @@ const CandlestickChart = ({ symbol, timeframe, className, onSelectCandle }: Cand
           />
           
           {/* Pattern markers */}
-          <PatternMarkers patterns={patterns} data={data} />
+          <PatternMarkers 
+            patterns={patterns} 
+            data={data} 
+            selectedPatternIndex={selectedPatternIndex}
+            onSelectPattern={handlePatternSelect}
+          />
         </ComposedChart>
       </ResponsiveContainer>
 
       <SelectionIndicator selectedCandleIndex={selectedCandleIndex} data={data} />
+      
+      {/* Pattern indicator - Show when a pattern is selected */}
+      {selectedPatternIndex !== null && patterns[selectedPatternIndex] && (
+        <div className="absolute top-2 right-2 bg-card/80 backdrop-blur-sm rounded px-3 py-1.5 text-xs border border-zinc-700 flex items-center gap-2">
+          <span className={patterns[selectedPatternIndex].type.includes("bullish") ? "text-bitcoin-green" : 
+                           patterns[selectedPatternIndex].type.includes("bearish") ? "text-bitcoin-red" : 
+                           "text-yellow-500"}>
+            {patterns[selectedPatternIndex].type === "bullish-engulfing" ? t("ابتلاع صعودي", "Bullish Engulfing") :
+             patterns[selectedPatternIndex].type === "hammer" ? t("المطرقة", "Hammer") :
+             patterns[selectedPatternIndex].type === "bearish-engulfing" ? t("ابتلاع هبوطي", "Bearish Engulfing") :
+             patterns[selectedPatternIndex].type === "doji" ? t("دوجي", "Doji") :
+             patterns[selectedPatternIndex].type}
+          </span>
+        </div>
+      )}
     </div>
   );
 };
