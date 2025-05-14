@@ -8,6 +8,7 @@ import TimeframeSelector from "@/components/TimeframeSelector";
 import CandlestickChart from "@/components/CandlestickChart";
 import PatternList from "@/components/PatternList";
 import SymbolSelector from "@/components/SymbolSelector";
+import CandleDetail, { CandleData } from "@/components/CandleDetail";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 const CandlestickAnalysis = () => {
@@ -15,6 +16,7 @@ const CandlestickAnalysis = () => {
   const [timeframe, setTimeframe] = useState("1d");
   const [symbol, setSymbol] = useState("BTC/USD");
   const [activeTab, setActiveTab] = useState("chart");
+  const [selectedCandle, setSelectedCandle] = useState<CandleData | null>(null);
 
   const handleTimeframeChange = (tf: any) => {
     setTimeframe(tf);
@@ -22,6 +24,10 @@ const CandlestickAnalysis = () => {
 
   const handleSymbolChange = (sym: string) => {
     setSymbol(sym);
+  };
+
+  const handleSelectCandle = (candle: CandleData | null) => {
+    setSelectedCandle(candle);
   };
 
   return (
@@ -55,7 +61,15 @@ const CandlestickAnalysis = () => {
                       <CardTitle>{symbol} - {timeframe}</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <CandlestickChart symbol={symbol} timeframe={timeframe} />
+                      <CandlestickChart 
+                        symbol={symbol} 
+                        timeframe={timeframe} 
+                        onSelectCandle={handleSelectCandle}
+                      />
+                      
+                      <div className="text-xs text-muted-foreground mt-2 text-center">
+                        {t("انقر على أي شمعة في الرسم البياني لعرض تفاصيلها", "Click on any candle in the chart to view its details")}
+                      </div>
                     </CardContent>
                   </Card>
                 </TabsContent>
@@ -74,16 +88,10 @@ const CandlestickAnalysis = () => {
             </div>
             
             <div className="lg:col-span-1">
-              <Card className="border-zinc-800">
-                <CardHeader>
-                  <CardTitle>{t("معلومات النمط", "Pattern Information")}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <p>{t("اختر نمطًا من القائمة لعرض معلومات مفصلة عنه.", "Select a pattern from the list to view detailed information.")}</p>
-                  </div>
-                </CardContent>
-              </Card>
+              <CandleDetail 
+                selectedCandle={selectedCandle}
+                timeframe={timeframe}
+              />
             </div>
           </div>
         </div>
@@ -93,3 +101,4 @@ const CandlestickAnalysis = () => {
 };
 
 export default CandlestickAnalysis;
+

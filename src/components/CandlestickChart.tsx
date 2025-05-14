@@ -10,14 +10,15 @@ import {
   Tooltip, 
   CartesianGrid, 
   Bar,
-  Line,
   ReferenceLine
 } from "recharts";
+import { CandleData } from "./CandleDetail";
 
 type CandlestickChartProps = {
   symbol: string;
   timeframe: string;
   className?: string;
+  onSelectCandle?: (candle: CandleData | null) => void;
 };
 
 // Generate demo candlestick data
@@ -59,17 +60,24 @@ const generateCandlestickData = (count: number) => {
   return data;
 };
 
-const CandlestickChart = ({ symbol, timeframe, className }: CandlestickChartProps) => {
+const CandlestickChart = ({ symbol, timeframe, className, onSelectCandle }: CandlestickChartProps) => {
   const { t } = useLanguage();
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<CandleData[]>([]);
   const [chartHeight, setChartHeight] = useState(450);
   const containerRef = useRef<HTMLDivElement>(null);
   const [patterns, setPatterns] = useState<any[]>([]);
+  const [selectedCandleIndex, setSelectedCandleIndex] = useState<number | null>(null);
   
   useEffect(() => {
     // Load candlestick data based on symbol and timeframe
     const newData = generateCandlestickData(30);
     setData(newData);
+    
+    // Reset selected candle when changing symbol or timeframe
+    setSelectedCandleIndex(null);
+    if (onSelectCandle) {
+      onSelectCandle(null);
+    }
     
     // Simulate finding patterns
     const simulatedPatterns = [
@@ -90,17 +98,32 @@ const CandlestickChart = ({ symbol, timeframe, className }: CandlestickChartProp
     window.addEventListener("resize", updateHeight);
     
     return () => window.removeEventListener("resize", updateHeight);
-  }, [symbol, timeframe]);
+  }, [symbol, timeframe, onSelectCandle]);
   
   // Format price for tooltip and axis
   const priceFormatter = (value: number) => {
     return `$${value.toLocaleString()}`;
   };
+
+  const handleClick = (data: any, index: number) => {
+    if (data && data.activePayload && data.activePayload.length) {
+      const candleIndex = data.activeTooltipIndex;
+      setSelectedCandleIndex(candleIndex);
+      
+      if (onSelectCandle) {
+        onSelectCandle(candleIndex !== null ? data.activePayload[0].payload : null);
+      }
+    }
+  };
   
   return (
-    <div className={`${className} overflow-hidden`} ref={containerRef}>
+    <div className={`${className} overflow-hidden relative`} ref={containerRef}>
       <ResponsiveContainer width="100%" height={chartHeight}>
-        <ComposedChart data={data} margin={{ top: 10, right: 30, left: 20, bottom: 30 }}>
+        <ComposedChart 
+          data={data} 
+          margin={{ top: 10, right: 30, left: 20, bottom: 30 }}
+          onClick={handleClick}
+        >
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#333" />
           
           <XAxis 
@@ -154,7 +177,8 @@ const CandlestickChart = ({ symbol, timeframe, className }: CandlestickChartProp
               key={`candle-${index}`}
               x={entry.date}
               yAxisId="price"
-              stroke="transparent"
+              stroke={selectedCandleIndex === index ? "#9b87f5" : "transparent"}
+              strokeWidth={selectedCandleIndex === index ? 2 : 1}
               segment={[
                 { x: index, y: entry.low },
                 { x: index, y: entry.high }
@@ -166,8 +190,11 @@ const CandlestickChart = ({ symbol, timeframe, className }: CandlestickChartProp
               key={`body-${index}`}
               yAxisId="price"
               x={entry.date}
-              stroke={entry.open > entry.close ? "#f6465d" : "#0ecb81"}
-              strokeWidth={8}
+              stroke={selectedCandleIndex === index 
+                ? "#9b87f5" 
+                : entry.open > entry.close ? "#f6465d" : "#0ecb81"
+              }
+              strokeWidth={selectedCandleIndex === index ? 10 : 8}
               segment={[
                 { x: index, y: entry.open },
                 { x: index, y: entry.close }
@@ -197,8 +224,15 @@ const CandlestickChart = ({ symbol, timeframe, className }: CandlestickChartProp
           ))}
         </ComposedChart>
       </ResponsiveContainer>
+
+      {selectedCandleIndex !== null && (
+        <div className="absolute top-2 left-2 bg-card/80 backdrop-blur-sm rounded px-2 py-1 text-xs">
+          {t("الشمعة المحددة:", "Selected candle:")} {data[selectedCandleIndex]?.date}
+        </div>
+      )}
     </div>
   );
 };
 
 export default CandlestickChart;
+
