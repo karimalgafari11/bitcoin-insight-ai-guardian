@@ -1,29 +1,91 @@
 
+import { useState } from "react";
 import AppSidebar from "@/components/AppSidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import TimeframeSelector from "@/components/TimeframeSelector";
+import CandlestickChart from "@/components/CandlestickChart";
+import PatternList from "@/components/PatternList";
+import SymbolSelector from "@/components/SymbolSelector";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const CandlestickAnalysis = () => {
+  const { t } = useLanguage();
+  const [timeframe, setTimeframe] = useState("1d");
+  const [symbol, setSymbol] = useState("BTC/USD");
+  const [activeTab, setActiveTab] = useState("chart");
+
+  const handleTimeframeChange = (tf: any) => {
+    setTimeframe(tf);
+  };
+
+  const handleSymbolChange = (sym: string) => {
+    setSymbol(sym);
+  };
+
   return (
     <div className="min-h-screen flex w-full">
       <AppSidebar />
       <div className="flex-1 overflow-auto">
         <div className="p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-semibold">تحليل الشموع</h1>
-            <div className="flex items-center gap-4">
-              <SidebarTrigger />
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+            <h1 className="text-2xl font-semibold">{t("تحليل الشموع", "Candlestick Analysis")}</h1>
+            <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 w-full md:w-auto">
+              <SymbolSelector onSymbolChange={handleSymbolChange} symbol={symbol} />
+              <TimeframeSelector 
+                onTimeframeChange={handleTimeframeChange}
+                className="justify-end"
+              />
+              <SidebarTrigger className="md:ml-2" />
             </div>
           </div>
           
-          <Card className="border-zinc-800">
-            <CardHeader>
-              <CardTitle>صفحة تحليل الشموع اليابانية</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>سيتم تطوير هذه الصفحة لتحليل أنماط الشموع اليابانية المختلفة وإشاراتها.</p>
-            </CardContent>
-          </Card>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="mb-4">
+                  <TabsTrigger value="chart">{t("الرسم البياني", "Chart")}</TabsTrigger>
+                  <TabsTrigger value="patterns">{t("الأنماط المكتشفة", "Detected Patterns")}</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="chart">
+                  <Card className="border-zinc-800">
+                    <CardHeader>
+                      <CardTitle>{symbol} - {timeframe}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <CandlestickChart symbol={symbol} timeframe={timeframe} />
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                <TabsContent value="patterns">
+                  <Card className="border-zinc-800">
+                    <CardHeader>
+                      <CardTitle>{t("الأنماط المكتشفة", "Detected Patterns")}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <PatternList symbol={symbol} timeframe={timeframe} />
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+            </div>
+            
+            <div className="lg:col-span-1">
+              <Card className="border-zinc-800">
+                <CardHeader>
+                  <CardTitle>{t("معلومات النمط", "Pattern Information")}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <p>{t("اختر نمطًا من القائمة لعرض معلومات مفصلة عنه.", "Select a pattern from the list to view detailed information.")}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </div>
       </div>
     </div>
