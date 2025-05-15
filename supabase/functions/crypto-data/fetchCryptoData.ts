@@ -1,14 +1,13 @@
 
 import { fetchFromBinance } from "./apis/binance.ts";
 import { fetchFromCoinGecko } from "./apis/coinGecko.ts";
-import { fetchFromPublicApis } from "./apis/publicApis.ts";
 import { generateMockData } from "./utils/mockDataGenerator.ts";
 
 /**
  * Main function to fetch and aggregate crypto data from multiple sources
  */
 export async function fetchCryptoData(coinId: string, days: string, currency: string) {
-  console.log(`Fetching data for: ${coinId}, days: ${days}, currency: ${currency}, realtime: ${false}`);
+  console.log(`Fetching data for: ${coinId}, days: ${days}, currency: ${currency}`);
   
   // Check for Binance API keys in environment variables or passed as request headers
   const hasBinanceApiKey = Deno.env.get("BINANCE_API_KEY") || Deno.env.get("binance_api_key");
@@ -43,19 +42,6 @@ export async function fetchCryptoData(coinId: string, days: string, currency: st
   } catch (coinGeckoError) {
     console.error("CoinGecko fetch failed:", coinGeckoError);
     console.error("Detailed CoinGecko fetch error:", coinGeckoError);
-  }
-  
-  // Try public APIs as our third source
-  try {
-    console.log("Attempting to fetch from public API");
-    const publicApiData = await fetchFromPublicApis(coinId, days, currency);
-    return {
-      ...publicApiData,
-      isMockData: false,
-      dataSource: "public-api"
-    };
-  } catch (publicApiError) {
-    console.error("Public API fetch failed:", publicApiError);
   }
   
   // As a last resort, return mock data
