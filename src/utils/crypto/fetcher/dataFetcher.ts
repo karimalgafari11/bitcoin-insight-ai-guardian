@@ -42,7 +42,7 @@ export async function fetchCryptoData(
       console.log('Using pending request for', cacheKey);
       try {
         // Wait for the existing request to complete
-        const result = await hasPendingRequest(cacheKey);
+        const result = await getPendingRequest(cacheKey);
         return result;
       } catch (err) {
         // If the shared request fails, we'll proceed to make a new one
@@ -163,3 +163,4 @@ export async function fetchCryptoData(
     };
   }
 }
+
