@@ -811,6 +811,81 @@ export type Database = {
           },
         ]
       }
+      trading_entries: {
+        Row: {
+          created_at: string
+          direction: string
+          entry_date: string
+          entry_price: number
+          exit_date: string | null
+          exit_price: number | null
+          id: string
+          notes: string | null
+          profit_loss: number | null
+          profit_loss_percentage: number | null
+          screenshot_url: string | null
+          setup_type: string | null
+          size: number
+          status: string
+          stop_loss: number | null
+          strategy: string | null
+          symbol: string
+          tags: string[] | null
+          take_profit: number | null
+          timeframe: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          direction: string
+          entry_date?: string
+          entry_price: number
+          exit_date?: string | null
+          exit_price?: number | null
+          id?: string
+          notes?: string | null
+          profit_loss?: number | null
+          profit_loss_percentage?: number | null
+          screenshot_url?: string | null
+          setup_type?: string | null
+          size: number
+          status?: string
+          stop_loss?: number | null
+          strategy?: string | null
+          symbol?: string
+          tags?: string[] | null
+          take_profit?: number | null
+          timeframe?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          direction?: string
+          entry_date?: string
+          entry_price?: number
+          exit_date?: string | null
+          exit_price?: number | null
+          id?: string
+          notes?: string | null
+          profit_loss?: number | null
+          profit_loss_percentage?: number | null
+          screenshot_url?: string | null
+          setup_type?: string | null
+          size?: number
+          status?: string
+          stop_loss?: number | null
+          strategy?: string | null
+          symbol?: string
+          tags?: string[] | null
+          take_profit?: number | null
+          timeframe?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       trading_journal: {
         Row: {
           created_at: string | null

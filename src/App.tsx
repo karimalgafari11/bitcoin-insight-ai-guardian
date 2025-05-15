@@ -13,6 +13,7 @@ import TechnicalPatterns from "./pages/TechnicalPatterns";
 import CandlestickAnalysis from "./pages/CandlestickAnalysis";
 import NewsSentiment from "./pages/NewsSentiment";
 import TradingJournal from "./pages/TradingJournal";
+import TradingEntryForm from "./pages/journal/TradingEntryForm";
 import RiskCalculator from "./pages/RiskCalculator";
 import Education from "./pages/Education";
 import Settings from "./pages/Settings";
@@ -76,6 +77,8 @@ const AppRoutes = () => (
       <Route path="/candlestick-analysis" element={<CandlestickAnalysis />} />
       <Route path="/news-sentiment" element={<NewsSentiment />} />
       <Route path="/trading-journal" element={<TradingJournal />} />
+      <Route path="/trading-journal/new" element={<TradingEntryForm />} />
+      <Route path="/trading-journal/edit/:id" element={<TradingEntryForm />} />
       <Route path="/risk-calculator" element={<RiskCalculator />} />
       <Route path="/education" element={<Education />} />
       <Route path="/settings" element={<Settings />} />
