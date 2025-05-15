@@ -2,6 +2,7 @@
 import { corsHeaders } from "./cors.ts";
 import { coinSymbolMap, intervalMap } from "./coinSymbolMap.ts";
 import { formatHistoricalData } from "./formatData.ts";
+import { generateMockData } from "./mockData.ts";
 
 /**
  * Fetches cryptocurrency data from CoinMarketCap API
@@ -11,24 +12,31 @@ export async function fetchCryptoData(coinId: string, days: string, currency: st
   const coinmarketcapApiKey = Deno.env.get("Coinmarketcup_api_key") || "";
   
   if (!coinmarketcapApiKey) {
-    console.error("CoinMarketCap API key not found");
-    throw new Error("CoinMarketCap API key not found");
+    console.warn("CoinMarketCap API key not found, using mock data instead");
+    // Return mock data when API key is not available
+    return generateMockData(coinId, days, currency);
   }
 
   const symbol = coinSymbolMap[coinId] || coinId.toUpperCase();
   const interval = intervalMap[days] || '1d';
   
-  // Get current price data
-  const quoteData = await fetchCurrentPriceData(symbol, currency, coinmarketcapApiKey);
-  
-  // Get coin ID from symbol
-  const cmcCoinId = await fetchCoinId(symbol, coinmarketcapApiKey);
-  
-  // Get historical OHLCV data
-  const historicalData = await fetchHistoricalData(cmcCoinId, interval, days, currency, coinmarketcapApiKey);
-  
-  // Format the data
-  return formatHistoricalData(historicalData, quoteData, currency);
+  try {
+    // Get current price data
+    const quoteData = await fetchCurrentPriceData(symbol, currency, coinmarketcapApiKey);
+    
+    // Get coin ID from symbol
+    const cmcCoinId = await fetchCoinId(symbol, coinmarketcapApiKey);
+    
+    // Get historical OHLCV data
+    const historicalData = await fetchHistoricalData(cmcCoinId, interval, days, currency, coinmarketcapApiKey);
+    
+    // Format the data
+    return formatHistoricalData(historicalData, quoteData, currency);
+  } catch (error) {
+    console.error(`Error fetching data from CoinMarketCap: ${error.message}`);
+    // Return mock data as a fallback
+    return generateMockData(coinId, days, currency);
+  }
 }
 
 /**

@@ -25,6 +25,8 @@ export function useCryptoData(coinId: string = 'bitcoin', days: string = '7', cu
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const controller = new AbortController();
+    
     async function fetchCryptoData() {
       try {
         setLoading(true);
@@ -37,7 +39,8 @@ export function useCryptoData(coinId: string = 'bitcoin', days: string = '7', cu
             coinId,
             days,
             currency
-          }
+          },
+          signal: controller.signal
         });
 
         if (responseError) {
@@ -59,6 +62,12 @@ export function useCryptoData(coinId: string = 'bitcoin', days: string = '7', cu
 
         setData(responseData as CryptoMarketData);
       } catch (err) {
+        // Ignore errors from aborted requests
+        if (err.name === 'AbortError') {
+          console.log('Request was aborted');
+          return;
+        }
+        
         console.error('Error fetching crypto data:', err);
         const errorMessage = err instanceof Error ? err.message : 'خطأ في جلب بيانات العملة الرقمية';
         setError(errorMessage);
@@ -68,11 +77,19 @@ export function useCryptoData(coinId: string = 'bitcoin', days: string = '7', cu
           variant: "destructive"
         });
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       }
     }
 
     fetchCryptoData();
+    
+    // Cleanup function to abort any pending requests when component unmounts
+    // or dependencies change
+    return () => {
+      controller.abort();
+    };
   }, [coinId, days, currency]);
 
   return { data, loading, error };
