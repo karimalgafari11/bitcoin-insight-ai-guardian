@@ -28,26 +28,33 @@ export async function fetchFromBinance(coinId: string, days: string, currency: s
   // Get the appropriate interval and limit based on days
   const { interval, limit } = getBinanceParams(days);
   
-  // Define the Binance API endpoint
-  const endpoint = `https://api.binance.com/api/v3/klines`;
-  const params = new URLSearchParams({
-    symbol: symbol,
-    interval: interval,
-    limit: limit.toString(),
-  });
+  try {
+    // Define the Binance API endpoint
+    const endpoint = `https://api.binance.com/api/v3/klines`;
+    const params = new URLSearchParams({
+      symbol: symbol,
+      interval: interval,
+      limit: limit.toString(),
+    });
 
-  // Make the request
-  const response = await fetch(`${endpoint}?${params}`);
-  
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Binance API error (${response.status}): ${errorText}`);
+    console.log(`Binance request URL: ${endpoint}?${params}`);
+
+    // Make the request
+    const response = await fetch(`${endpoint}?${params}`);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Binance API error (${response.status}): ${errorText}`);
+    }
+
+    const klines: any[][] = await response.json();
+    
+    // Parse and format the response
+    return processKlinesData(klines, coinId, days, currency);
+  } catch (error) {
+    console.error("Detailed Binance fetch error:", error);
+    throw error;
   }
-
-  const klines: any[][] = await response.json();
-  
-  // Parse and format the response
-  return processKlinesData(klines, coinId, days, currency);
 }
 
 /**
@@ -71,6 +78,7 @@ function mapCoinIdToSymbol(coinId: string, currency: string): string {
   const coin = coinMap[coinId.toLowerCase()] || coinId.toUpperCase();
   const curr = currency.toUpperCase();
   
+  // For Binance, we need to format the symbol correctly without hyphens
   return `${coin}${curr}`;
 }
 
@@ -103,6 +111,10 @@ function getBinanceParams(days: string): { interval: string; limit: number } {
  * Processes and formats klines data from Binance
  */
 function processKlinesData(klines: any[][], coinId: string, days: string, currency: string) {
+  if (!klines || klines.length === 0) {
+    throw new Error("No data returned from Binance API");
+  }
+
   // Extract and format prices
   const prices = klines.map(kline => {
     const timestamp = kline[0]; // Open time
@@ -147,6 +159,7 @@ function processKlinesData(klines: any[][], coinId: string, days: string, curren
       total_volume: totalVolume24h,
       percent_change_24h: percentChange24h,
       last_updated: new Date().toISOString(),
-    }
+    },
+    dataSource: "binance"
   };
 }

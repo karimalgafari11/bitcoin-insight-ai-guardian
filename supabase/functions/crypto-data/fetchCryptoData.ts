@@ -33,23 +33,6 @@ export async function fetchCryptoData(coinId: string, days: string, currency: st
       // Continue to next source if this one fails
     }
     
-    // Next try CoinMarketCap if we have an API key
-    if (coinMarketCapApiKey) {
-      try {
-        console.log("Attempting to fetch from CoinMarketCap");
-        const data = await fetchFromCoinMarketCap(coinId, days, currency, coinMarketCapApiKey);
-        console.log("Successfully fetched data from CoinMarketCap!");
-        return {
-          ...data,
-          isMockData: false,
-          dataSource: "coinmarketcap"
-        };
-      } catch (error) {
-        console.error("CoinMarketCap fetch failed:", error.message);
-        // Continue to next source if this one fails
-      }
-    }
-    
     // Next try CoinGecko
     try {
       console.log("Attempting to fetch from CoinGecko");

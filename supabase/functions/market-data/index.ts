@@ -5,7 +5,7 @@
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
-// Load API keys from localStorage when available in client (not available in edge functions)
+// Load API keys from environment
 const BINANCE_API_KEY = 'UklcmVRAsY7KBBbp2FfqHVuequcGBOhAKb5tRMxg3vQEPa77QrNX8GvhTnqtIT1x';
 const BINANCE_SECRET_KEY = '9GzGJPmfM2fFLh1cpOzUAowcZCn5UpVA1b4wXwoZGdSbDVzNrlMvd4RBjGTXlCVF';
 
@@ -20,18 +20,27 @@ interface MarketDataResponse {
 
 serve(async (req) => {
   try {
+    // Add CORS headers
+    const corsHeaders = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    };
+
+    // Handle CORS preflight requests
+    if (req.method === 'OPTIONS') {
+      return new Response('ok', { headers: corsHeaders });
+    }
+
     // Extract URL parameters
     const url = new URL(req.url);
     const symbol = url.searchParams.get('symbol') || 'BTC';
     const currency = url.searchParams.get('currency') || 'USD';
 
-    // Attempt to fetch data from Binance
+    // Format the symbol for Binance API
+    const binanceSymbol = `${symbol}${currency}`;
+    console.log(`Attempting to fetch data from Binance for symbol: ${binanceSymbol}`);
+    
     try {
-      console.log("Attempting to fetch data from Binance");
-      
-      // Format the symbol for Binance API
-      const binanceSymbol = `${symbol}${currency}`;
-      
       // Fetch ticker data from Binance
       const tickerResponse = await fetch(
         `https://api.binance.com/api/v3/ticker/24hr?symbol=${binanceSymbol}`,
@@ -43,7 +52,9 @@ serve(async (req) => {
       );
       
       if (!tickerResponse.ok) {
-        throw new Error(`Binance API error: ${await tickerResponse.text()}`);
+        const errorText = await tickerResponse.text();
+        console.error(`Binance API ticker error (${tickerResponse.status}): ${errorText}`);
+        throw new Error(`Binance API error: ${errorText}`);
       }
       
       const tickerData = await tickerResponse.json();
@@ -54,7 +65,9 @@ serve(async (req) => {
       );
       
       if (!priceResponse.ok) {
-        throw new Error(`Binance price API error: ${await priceResponse.text()}`);
+        const errorText = await priceResponse.text();
+        console.error(`Binance price API error (${priceResponse.status}): ${errorText}`);
+        throw new Error(`Binance price API error: ${errorText}`);
       }
       
       const priceData = await priceResponse.json();
@@ -69,31 +82,54 @@ serve(async (req) => {
       };
       
       return new Response(
-        JSON.stringify({ ...marketData, source: "binance" }),
-        { headers: { "Content-Type": "application/json" } },
+        JSON.stringify({ 
+          ...marketData, 
+          source: "binance",
+          isLive: true
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     } catch (binanceError) {
       console.error("Error fetching from Binance:", binanceError);
+      
+      // Try to provide more useful error information
+      const errorMessage = binanceError instanceof Error 
+        ? binanceError.message 
+        : "Unknown error fetching market data";
+      
+      console.error("Detailed error:", errorMessage);
+      
       // Fall back to mock data
+      return new Response(
+        JSON.stringify({
+          price: 45000.00,  // Mock data
+          volume24h: 24000000000,
+          change24h: 1.5,
+          marketCap: 850000000000,
+          lastUpdate: new Date().toISOString(),
+          source: "mock-data",
+          isLive: false,
+          error: errorMessage
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
-    
-    // Use fallback mock data if Binance fails
-    return new Response(
-      JSON.stringify({
-        price: 45000.00,  // Mock data
-        volume24h: 24000000000,
-        change24h: 1.5,
-        marketCap: 850000000000,
-        lastUpdate: new Date().toISOString(),
-        source: "mock-data"
-      }),
-      { headers: { "Content-Type": "application/json" } }
-    );
-    
   } catch (error) {
+    const corsHeaders = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    };
+    
     return new Response(
-      JSON.stringify({ error: error.message || "حدث خطأ أثناء جلب بيانات السوق" }),
-      { headers: { "Content-Type": "application/json" }, status: 500 },
+      JSON.stringify({ 
+        error: error.message || "حدث خطأ أثناء جلب بيانات السوق",
+        source: "error",
+        isLive: false
+      }),
+      { 
+        headers: { ...corsHeaders, "Content-Type": "application/json" }, 
+        status: 500 
+      },
     )
   }
 })
