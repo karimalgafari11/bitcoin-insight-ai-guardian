@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { toast } from '@/components/ui/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { CryptoMarketData, UseCryptoDataResult } from '@/types/crypto';
-import { fetchCryptoData, preloadCommonCryptoData } from '@/utils/crypto/cryptoDataFetcher';
+import { fetchCryptoData, preloadCommonCryptoData } from '@/utils/crypto/fetcher';
 import { useCryptoDataTimers } from './useCryptoDataTimers';
 import { useCryptoDataRefresh } from './useCryptoDataRefresh';
 import { useCryptoRealtimeChannel } from './useCryptoRealtimeChannel';

@@ -1,6 +1,6 @@
 
 import { useCallback } from 'react';
-import { fetchCryptoData } from '@/utils/crypto/cryptoDataFetcher';
+import { fetchCryptoData } from '@/utils/crypto/fetcher';
 import { CACHE_TTL } from '@/utils/crypto/constants';
 import { CryptoMarketData } from '@/types/crypto';
 
