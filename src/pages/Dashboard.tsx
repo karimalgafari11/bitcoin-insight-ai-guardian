@@ -13,7 +13,7 @@ import TimeframeSelector from "@/components/TimeframeSelector";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
-import { useCryptoData } from "@/hooks/useCryptoData";
+import { useCryptoData } from "@/hooks/crypto";
 
 const Dashboard = () => {
   const { t } = useLanguage();

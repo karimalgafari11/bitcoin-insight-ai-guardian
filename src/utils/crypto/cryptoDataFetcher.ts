@@ -2,10 +2,10 @@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { CryptoMarketData } from '@/types/crypto';
+import { MEMORY_CACHE_TTL } from './constants';
 
 // Cache for in-memory data retention between requests
 const inMemoryCache: Record<string, { data: CryptoMarketData; timestamp: number }> = {};
-const MEMORY_CACHE_TTL = 15000; // 15 seconds 
 
 // Track active requests to prevent duplicate concurrent requests
 const pendingRequests = new Map<string, Promise<any>>();
