@@ -7,6 +7,16 @@ export interface CryptoMarketData {
   prices: [number, number][];
   market_caps: [number, number][];
   total_volumes: [number, number][];
+  metadata?: {
+    name: string;
+    symbol: string;
+    current_price: number;
+    market_cap: number;
+    volume_24h: number;
+    percent_change_24h: number;
+    percent_change_7d: number;
+    last_updated: string;
+  };
 }
 
 export function useCryptoData(coinId: string = 'bitcoin', days: string = '7', currency: string = 'usd') {

@@ -8,7 +8,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { arSA } from 'date-fns/locale';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ArrowUp, ArrowDown, Info } from 'lucide-react';
 
 interface CryptoDataDisplayProps {
   defaultCoin?: string;
@@ -55,6 +55,25 @@ const CryptoDataDisplay: React.FC<CryptoDataDisplayProps> = ({ defaultCoin = 'bi
     }
   };
 
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      maximumFractionDigits: 2
+    }).format(value);
+  };
+
+  const formatLargeNumber = (num: number) => {
+    if (num >= 1e9) {
+      return `${(num / 1e9).toFixed(2)}B`;
+    } else if (num >= 1e6) {
+      return `${(num / 1e6).toFixed(2)}M`;
+    } else if (num >= 1e3) {
+      return `${(num / 1e3).toFixed(2)}K`;
+    }
+    return num.toString();
+  };
+
   return (
     <Card className="w-full mb-6">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -98,29 +117,57 @@ const CryptoDataDisplay: React.FC<CryptoDataDisplayProps> = ({ defaultCoin = 'bi
           </div>
         ) : data && data.prices && data.prices.length > 0 ? (
           <div>
-            <div className="flex justify-between items-center mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
-                <h3 className="font-bold text-lg">{getSymbolName(selectedCoin)}</h3>
-                <p className="text-muted-foreground text-sm">
-                  {t('آخر سعر', 'Last price')}: ${data.prices[data.prices.length - 1][1].toFixed(2)}
+                <h3 className="font-bold text-lg">
+                  {data.metadata?.name || getSymbolName(selectedCoin)}
+                </h3>
+                <div className="flex items-center gap-2">
+                  <p className="text-2xl font-bold">
+                    {formatCurrency(data.metadata?.current_price || data.prices[data.prices.length - 1][1])}
+                  </p>
+                  {data.metadata && (
+                    <span className={
+                      data.metadata.percent_change_24h > 0 ? 
+                      'text-green-500 flex items-center' : 'text-red-500 flex items-center'
+                    }>
+                      {data.metadata.percent_change_24h > 0 ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />}
+                      {Math.abs(data.metadata.percent_change_24h).toFixed(2)}%
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {t('آخر تحديث', 'Last updated')}: {data.metadata ? 
+                    new Date(data.metadata.last_updated).toLocaleTimeString() : 
+                    new Date().toLocaleTimeString()
+                  }
                 </p>
               </div>
-              <div className="text-right">
-                <p className="text-sm text-muted-foreground">
-                  {t('التغيير', 'Change')}: 
-                  <span className={
-                    data.prices[data.prices.length - 1][1] > data.prices[0][1] ? 
-                    'text-green-500 ml-1' : 'text-red-500 ml-1'
-                  }>
-                    {(((data.prices[data.prices.length - 1][1] - data.prices[0][1]) / data.prices[0][1]) * 100).toFixed(2)}%
-                  </span>
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {t('في آخر', 'In the last')} {timeframe === '1' ? t('يوم', 'day') : 
-                   timeframe === '7' ? t('أسبوع', '7 days') : 
-                   timeframe === '30' ? t('شهر', '30 days') : t('ثلاثة أشهر', '90 days')}
-                </p>
-              </div>
+              
+              {data.metadata && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">{t('القيمة السوقية', 'Market Cap')}</p>
+                    <p className="font-medium">{formatLargeNumber(data.metadata.market_cap)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">{t('حجم التداول (24 ساعة)', 'Volume (24h)')}</p>
+                    <p className="font-medium">{formatLargeNumber(data.metadata.volume_24h)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">{t('التغير (24 ساعة)', 'Change (24h)')}</p>
+                    <p className={data.metadata.percent_change_24h > 0 ? "text-green-500" : "text-red-500"}>
+                      {data.metadata.percent_change_24h.toFixed(2)}%
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">{t('التغير (7 أيام)', 'Change (7d)')}</p>
+                    <p className={data.metadata.percent_change_7d > 0 ? "text-green-500" : "text-red-500"}>
+                      {data.metadata.percent_change_7d.toFixed(2)}%
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
             
             <div className="h-[250px]">
@@ -150,6 +197,16 @@ const CryptoDataDisplay: React.FC<CryptoDataDisplayProps> = ({ defaultCoin = 'bi
                   />
                 </LineChart>
               </ResponsiveContainer>
+            </div>
+            
+            <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-md flex items-start gap-2">
+              <Info className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
+              <p className="text-sm text-muted-foreground">
+                {t(
+                  'البيانات مقدمة بواسطة CoinMarketCap. قد تختلف الأسعار قليلاً عن منصات التداول الأخرى.',
+                  'Data provided by CoinMarketCap. Prices may slightly differ from other trading platforms.'
+                )}
+              </p>
             </div>
           </div>
         ) : (
