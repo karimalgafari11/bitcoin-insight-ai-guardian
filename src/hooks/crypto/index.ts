@@ -5,3 +5,6 @@
 export * from './useCryptoData';
 export * from './useCryptoDataTimers';
 export * from './useCryptoDataRefresh';
+export * from './useCryptoDataFetch';
+export * from './useCryptoRealtimeChannel';
+export * from './useCryptoPolling';

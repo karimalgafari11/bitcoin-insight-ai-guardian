@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { 
@@ -56,7 +55,7 @@ const CandlestickChart = ({ symbol, timeframe, className, onSelectCandle }: Cand
             });
             
             // Replace with real data
-            const candleData = generateCandlestickData(30, binanceData.price, binanceData.change24h);
+            const candleData = generateCandlestickData(30);
             setData(candleData);
           } else {
             // If we get back mock data, show it but let the user know

@@ -1,21 +1,17 @@
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { toast } from '@/components/ui/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { CryptoMarketData, UseCryptoDataResult } from '@/types/crypto';
 import { fetchCryptoData, preloadCommonCryptoData } from '@/utils/crypto/cryptoDataFetcher';
-import { setupRealtimeChannel, cleanupChannel } from '@/utils/crypto/cryptoRealtimeChannel';
 import { useCryptoDataTimers } from './useCryptoDataTimers';
 import { useCryptoDataRefresh } from './useCryptoDataRefresh';
-import { CACHE_TTL, POLL_INTERVAL_SHORT, POLL_INTERVAL_STANDARD } from '@/utils/crypto/constants';
+import { useCryptoRealtimeChannel } from './useCryptoRealtimeChannel';
+import { useCryptoPolling } from './useCryptoPolling';
+import { setupRealtimeChannel, cleanupChannel } from '@/utils/crypto/cryptoRealtimeChannel';
 
 // Track mounted instances to optimize network requests
 const mountedInstances = new Set<string>();
-
-// Enhanced polling strategy based on timeframe
-const getPollingInterval = (days: string): number => {
-  return days === "1" ? POLL_INTERVAL_SHORT : POLL_INTERVAL_STANDARD;
-};
 
 export function useCryptoData(
   coinId: string = 'bitcoin',
@@ -30,95 +26,54 @@ export function useCryptoData(
   const [dataSource, setDataSource] = useState<string>("loading");
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
-  const [pollingEnabled, setPollingEnabled] = useState(true);
   
   // Use refs to track component state
-  const mountedRef = useRef<boolean>(true); // Track if component is mounted
+  const mountedRef = useRef<boolean>(true);
   const lastFetchRef = useRef<number>(0);
   const paramsRef = useRef({ coinId, days, currency });
   const instanceIdRef = useRef<string>(`${coinId}:${days}:${currency}`);
   
-  // Set up timers and channels using custom hooks
-  const { 
-    fetchTimerRef,
-    realtimeChannelRef,
-    abortControllerRef
-  } = useCryptoDataTimers();
+  // Custom hooks for various functionality
+  const { fetchTimerRef, realtimeChannelRef, abortControllerRef } = useCryptoDataTimers();
+  const { pollingEnabled, setPollingEnabled, togglePolling } = useCryptoPolling(fetchTimerRef);
   
-  // Function to fetch data
-  const fetchCryptoDataCallback = useCallback(async (force = false) => {
-    // Don't fetch again if we're already loading, unless force=true
-    if (loading && !force) return;
-    
-    const now = Date.now();
-    // Rate limit our requests - only fetch again if it's been at least 30 seconds
-    // unless params have changed or force=true
-    const hasParamsChanged = 
-      paramsRef.current.coinId !== coinId ||
-      paramsRef.current.days !== days ||
-      paramsRef.current.currency !== currency;
-      
-    if (!force && !hasParamsChanged && now - lastFetchRef.current < CACHE_TTL) {
-      return;
-    }
-    
-    // Update the params ref with the current values
-    paramsRef.current = { coinId, days, currency };
-    instanceIdRef.current = `${coinId}:${days}:${currency}`;
-    
-    // Cancel any existing request before making a new one
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    abortControllerRef.current = new AbortController();
-    
-    setLoading(true);
-    setError(null);
-
-    try {
-      // Use any cached data we have while fetching to provide a smooth experience
-      const result = await fetchCryptoData(coinId, days, currency, force);
-      
-      // Only update state if component is still mounted
-      if (!mountedRef.current) return;
-      
-      if (result.data) {
-        setData(result.data);
-        
-        // Always set isRealtime to true for fresh data that's not mock data
-        const isRealtimeData = !result.data.isMockData && !result.fromCache;
-        setIsRealtime(isRealtimeData);
-        
-        setDataSource(result.data.dataSource || "unknown");
-        setLastUpdated(result.data.fetchedAt || new Date().toISOString());
-        lastFetchRef.current = now;
-        setLastRefresh(new Date());
-        
-        // If we're getting real data, make sure polling is enabled
-        if (!result.data.isMockData) {
-          setPollingEnabled(true);
-        }
-      } else if (result.error) {
-        setError(result.error);
-      }
-    } catch (err) {
-      // Only set error for non-abort errors and if component is still mounted
-      if (!(err instanceof DOMException && err.name === 'AbortError') && mountedRef.current) {
-        console.error('Error in fetch callback:', err);
-        setError(err instanceof Error ? err.message : 'Unknown error');
-      }
-    } finally {
-      // Only update loading state if component is still mounted
-      if (mountedRef.current) {
-        setLoading(false);
-      }
-    }
-  }, [coinId, days, currency, loading]);
+  // Import and use the data fetching logic
+  const { fetchCryptoDataCallback } = useCryptoDataFetch({
+    coinId,
+    days,
+    currency,
+    loading,
+    mountedRef,
+    paramsRef,
+    abortControllerRef,
+    instanceIdRef,
+    lastFetchRef,
+    setLoading,
+    setError,
+    setData,
+    setIsRealtime,
+    setDataSource,
+    setLastUpdated,
+    setLastRefresh,
+    setPollingEnabled
+  });
   
   // The custom hook for refresh functionality
   const { refreshData } = useCryptoDataRefresh({
     mountedRef,
     fetchCryptoDataCallback,
+    setLastRefresh,
+    t
+  });
+  
+  // Custom hook for realtime updates
+  const { handleRealtimeUpdate } = useCryptoRealtimeChannel({
+    mountedRef,
+    setData,
+    setIsRealtime,
+    setDataSource,
+    setLastUpdated,
+    lastFetchRef,
     setLastRefresh,
     t
   });
@@ -136,52 +91,16 @@ export function useCryptoData(
     // but only force refresh if this is the first instance of this data request
     fetchCryptoDataCallback(isFirstInstance);
     
-    // Set up realtime channel for updates
-    const onRealtimeUpdate = (payload: any) => {
-      if (!payload.data || !mountedRef.current) return;
-      
-      const updatedData = payload.data;
-      
-      // Ensure we set isRealtime correctly from broadcasted data
-      setData(updatedData);
-      setIsRealtime(true); // Explicit set to true for realtime updates
-      setDataSource(updatedData.dataSource || "realtime-update");
-      setLastUpdated(payload.updatedAt || new Date().toISOString());
-      lastFetchRef.current = Date.now();
-      setLastRefresh(new Date());
-      
-      // Only show toast for real data updates, not cache hits
-      if (!updatedData.fromCache) {
-        toast({
-          title: t("تحديث البيانات", "Data Update"),
-          description: t("تم تحديث بيانات العملة الرقمية دون مغادرة الصفحة", "Cryptocurrency data updated without leaving the page"),
-        });
-      }
-    };
-
     // Clean up any existing channel before setting up a new one
     if (realtimeChannelRef.current) {
       cleanupChannel(paramsRef.current.coinId, paramsRef.current.days, paramsRef.current.currency);
     }
 
-    const channel = setupRealtimeChannel(coinId, days, currency, onRealtimeUpdate);
+    // Set up the realtime channel
+    const channel = setupRealtimeChannel(coinId, days, currency, handleRealtimeUpdate);
     realtimeChannelRef.current = channel;
     
-    // Set up polling as a backup for realtime updates
-    const pollingInterval = getPollingInterval(days);
-    
-    // Set up polling timer
-    if (pollingEnabled) {
-      fetchTimerRef.current = window.setInterval(() => {
-        if (mountedRef.current) {
-          console.log('Polling for data updates');
-          fetchCryptoDataCallback(false);
-        }
-      }, pollingInterval);
-    }
-    
     // If this is the first load of this type, preload common data
-    // This helps ensure other views load faster when navigated to
     if (isFirstInstance && coinId === 'bitcoin' && days === '7') {
       // Wait a bit to not compete with initial load
       setTimeout(() => {
@@ -216,27 +135,7 @@ export function useCryptoData(
         abortControllerRef.current = null;
       }
     };
-  }, [coinId, days, currency, fetchCryptoDataCallback, pollingEnabled, t]);
-
-  // Allow manual toggling of polling
-  const togglePolling = useCallback(() => {
-    setPollingEnabled(prev => {
-      if (prev && fetchTimerRef.current !== null) {
-        // Disable polling
-        window.clearInterval(fetchTimerRef.current);
-        fetchTimerRef.current = null;
-        return false;
-      } else {
-        // Enable polling
-        if (fetchTimerRef.current === null && mountedRef.current) {
-          fetchTimerRef.current = window.setInterval(() => {
-            fetchCryptoDataCallback(false);
-          }, getPollingInterval(days));
-        }
-        return true;
-      }
-    });
-  }, [days, fetchCryptoDataCallback]);
+  }, [coinId, days, currency, fetchCryptoDataCallback, handleRealtimeUpdate]);
 
   return { 
     data, 
