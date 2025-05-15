@@ -18,9 +18,9 @@ const Index = () => {
       <AppSidebar />
       <div className="flex-1 overflow-auto bg-gray-50 dark:bg-gray-900">
         <div className="container mx-auto py-6 px-4 max-w-7xl">
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex justify-between items-center mb-6 sticky top-0 z-10 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm py-2">
             <h1 className="text-4xl font-bold">{t('لوحة التحكم', 'Dashboard')}</h1>
-            <SidebarTrigger />
+            <SidebarTrigger className="bg-white dark:bg-gray-800 shadow-sm" />
           </div>
           
           <DashboardMetricsCards />

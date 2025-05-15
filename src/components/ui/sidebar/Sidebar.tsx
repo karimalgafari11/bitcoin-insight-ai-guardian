@@ -23,7 +23,7 @@ export const Sidebar = React.forwardRef<
     },
     ref
   ) => {
-    const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
+    const { isMobile, state, openMobile, setOpenMobile, SIDEBAR_WIDTH_MOBILE } = useSidebar();
 
     if (collapsible === "none") {
       return (
@@ -106,6 +106,3 @@ export const Sidebar = React.forwardRef<
   }
 );
 Sidebar.displayName = "Sidebar";
-
-// Constants needed for Sidebar
-const SIDEBAR_WIDTH_MOBILE = "18rem";
