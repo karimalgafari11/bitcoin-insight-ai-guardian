@@ -10,7 +10,7 @@ import { generateFallbackData } from "./utils/mockDataGenerator.ts";
  */
 export async function fetchCryptoData(coinId: string, days: string, currency: string) {
   // Get the API keys with correct spelling
-  const coinMarketCapApiKey = Deno.env.get("CoinMarketCap_api_key") || Deno.env.get("Coinmarketcup_api_key") || "";
+  const coinMarketCapApiKey = Deno.env.get("coinmarketcap") || "";
   const coinGeckoApiKey = Deno.env.get("CoinGecko_api_key") || Deno.env.get("Coingecko_api_key") || "";
   
   console.log("Using API keys - CoinMarketCap available:", !!coinMarketCapApiKey, "CoinGecko available:", !!coinGeckoApiKey);

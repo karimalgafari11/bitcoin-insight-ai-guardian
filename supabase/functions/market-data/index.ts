@@ -5,7 +5,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const CRYPTOCOMPARE_API_KEY = Deno.env.get('CRYPTOCOMPARE_API_KEY') || '';
-const COINMARKETCAP_API_KEY = Deno.env.get('COINMARKETCAP_API_KEY') || '6efa4e5c-1478-4068-873b-ec17d64241fb';
+const COINMARKETCAP_API_KEY = Deno.env.get('coinmarketcap') || '';
 
 interface MarketDataResponse {
   price: number;
