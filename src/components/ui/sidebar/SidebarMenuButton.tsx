@@ -44,6 +44,7 @@ export const SidebarMenuButton = React.forwardRef<
       size = "default",
       tooltip,
       className,
+      onClick,  // Add explicit onClick handler
       ...props
     },
     ref
@@ -57,6 +58,12 @@ export const SidebarMenuButton = React.forwardRef<
         data-sidebar="menu-button"
         data-size={size}
         data-active={isActive}
+        onClick={(event) => {
+          // Prevent default only if it's not handled properly
+          if (onClick) {
+            onClick(event);
+          }
+        }}
         className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
         {...props}
       />

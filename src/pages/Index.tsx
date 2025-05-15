@@ -9,9 +9,20 @@ import DashboardMetricsCards from "@/components/dashboard/DashboardMetricsCards"
 import DashboardChartPanel from "@/components/dashboard/DashboardChartPanel";
 import DashboardNewsPanel from "@/components/dashboard/DashboardNewsPanel";
 import DashboardWatchlistPanel from "@/components/dashboard/DashboardWatchlistPanel";
+import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 
 const Index = () => {
   const { t } = useLanguage();
+  const navigate = useNavigate();
+  
+  // Auto-redirect to dashboard from root path
+  useEffect(() => {
+    // Only redirect if we're on exactly the root path "/"
+    if (window.location.pathname === "/") {
+      navigate("/dashboard");
+    }
+  }, [navigate]);
   
   return (
     <div className="min-h-screen flex w-full">
