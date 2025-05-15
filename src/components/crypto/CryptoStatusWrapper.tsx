@@ -5,14 +5,17 @@ import CryptoLoadingState from './CryptoLoadingState';
 import CryptoErrorState from './CryptoErrorState';
 import CryptoEmptyState from './CryptoEmptyState';
 import { Button } from '@/components/ui/button';
-import { RefreshCcw } from 'lucide-react';
+import { Loader2, RefreshCcw, AlertTriangle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface CryptoStatusWrapperProps {
   loading: boolean;
   error: string | null;
   isEmpty?: boolean;
   onRefresh?: () => void;
+  isStaleData?: boolean;
+  dataSource?: string;
   children: React.ReactNode;
 }
 
@@ -25,6 +28,8 @@ const CryptoStatusWrapper: React.FC<CryptoStatusWrapperProps> = ({
   error,
   isEmpty = false,
   onRefresh,
+  isStaleData = false,
+  dataSource,
   children
 }) => {
   const { t } = useLanguage();
@@ -65,6 +70,66 @@ const CryptoStatusWrapper: React.FC<CryptoStatusWrapperProps> = ({
   
   if (isEmpty) {
     return <CryptoEmptyState />;
+  }
+  
+  // Show a warning if using stale data but display the content
+  if (isStaleData) {
+    return (
+      <>
+        <Alert variant="warning" className="mb-4">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>{t("بيانات غير محدثة", "Stale Data")}</AlertTitle>
+          <AlertDescription>
+            {t(
+              "نعرض بيانات مخزنة مؤقتًا. انقر على تحديث للحصول على أحدث البيانات.",
+              "Displaying cached data. Click refresh to get the latest data."
+            )}
+            {onRefresh && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleRefresh}
+                className="gap-2 ml-2 mt-2"
+              >
+                <RefreshCcw className="h-3 w-3" />
+                {t("تحديث", "Refresh")}
+              </Button>
+            )}
+          </AlertDescription>
+        </Alert>
+        {children}
+      </>
+    );
+  }
+  
+  // Show a warning if using mock data but display the content
+  if (dataSource === 'mock') {
+    return (
+      <>
+        <Alert variant="warning" className="mb-4">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>{t("بيانات تجريبية", "Mock Data")}</AlertTitle>
+          <AlertDescription>
+            {t(
+              "نعرض بيانات تجريبية بسبب عدم إمكانية الوصول لمصادر البيانات الحقيقية.",
+              "Displaying mock data because real data sources are unavailable."
+            )}
+            {onRefresh && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleRefresh}
+                className="gap-2 ml-2 mt-2"
+              >
+                <RefreshCcw className="h-3 w-3" />
+                {t("إعادة المحاولة", "Try again")}
+              </Button>
+            )}
+          </AlertDescription>
+        </Alert>
+        {children}
+      </>
+    );
   }
   
   return <>{children}</>;
