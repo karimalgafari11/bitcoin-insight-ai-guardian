@@ -102,7 +102,7 @@ const Education = () => {
                         titleEn={category.titleEn}
                         description={category.description}
                         descriptionEn={category.descriptionEn}
-                        icon={category.icon}
+                        iconType={category.iconType}
                         lessons={category.lessons}
                       />
                     ))}
@@ -127,7 +127,7 @@ const Education = () => {
                             titleEn={filteredCategory.titleEn}
                             description={filteredCategory.description}
                             descriptionEn={filteredCategory.descriptionEn}
-                            icon={filteredCategory.icon}
+                            iconType={filteredCategory.iconType}
                             lessons={filteredCategory.lessons}
                           />
                         )
