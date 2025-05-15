@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import AppSidebar from "@/components/AppSidebar";
 import { Card, CardContent } from "@/components/ui/card";
 import BitcoinChart from "@/components/BitcoinChart";
@@ -9,9 +9,15 @@ import LatestNews from "@/components/LatestNews";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useLanguage } from "@/contexts/LanguageContext";
 import CryptoDataDisplay from "@/components/CryptoDataDisplay";
+import TimeframeSelector from "@/components/TimeframeSelector";
 
 const Dashboard = () => {
   const { t } = useLanguage();
+  const [currentTimeframe, setCurrentTimeframe] = useState("1d");
+
+  const handleTimeframeChange = (timeframe: "4h" | "1d" | "1w" | "1m") => {
+    setCurrentTimeframe(timeframe);
+  };
 
   return (
     <div className="flex min-h-screen">
@@ -30,7 +36,10 @@ const Dashboard = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
             <Card className="col-span-full lg:col-span-2">
               <CardContent className="pt-6">
-                <BitcoinChart />
+                <div className="flex justify-end mb-4">
+                  <TimeframeSelector onTimeframeChange={handleTimeframeChange} />
+                </div>
+                <BitcoinChart timeframe={currentTimeframe} />
               </CardContent>
             </Card>
             <div className="space-y-6">
