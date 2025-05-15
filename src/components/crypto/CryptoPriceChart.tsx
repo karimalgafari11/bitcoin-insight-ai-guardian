@@ -20,6 +20,9 @@ const CryptoPriceChart: React.FC<CryptoPriceChartProps> = ({ priceData }) => {
   // استخدام useMemo لمنع إعادة إنشاء الدوال عند كل تقديم
   const formatDate = useMemo(() => {
     return (date: Date) => {
+      if (!date || isNaN(date.getTime())) {
+        return '';
+      }
       const locale = language === 'ar' ? arSA : undefined;
       return format(date, 'MMM dd', { locale });
     };
@@ -30,9 +33,29 @@ const CryptoPriceChart: React.FC<CryptoPriceChartProps> = ({ priceData }) => {
     return priceData;
   }, [priceData]);
 
-  // استخدام useMemo للدالة المنسقة
+  // استخدام useMemo للدالة المنسقة مع التحقق من صحة التاريخ
   const labelFormatter = useMemo(() => {
-    return (label: any) => format(new Date(label), 'PPpp');
+    return (label: any) => {
+      try {
+        if (!label) return '';
+        
+        // If label is already a Date object
+        if (label instanceof Date && !isNaN(label.getTime())) {
+          return format(label, 'PPpp');
+        }
+        
+        // If label is a string or number, try to convert to Date
+        const date = new Date(label);
+        if (isNaN(date.getTime())) {
+          return 'Invalid date';
+        }
+        
+        return format(date, 'PPpp');
+      } catch (error) {
+        console.error('Date formatting error:', error);
+        return 'Invalid date';
+      }
+    };
   }, []);
 
   // استخدام useMemo للقيمة المنسقة

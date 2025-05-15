@@ -113,6 +113,32 @@ const BitcoinChart = ({ timeframe, className }: BitcoinChartProps) => {
   
   const chartData = formatData(data.prices);
   
+  // Safe date formatter for tooltip that checks if input is valid
+  const safeDateFormatter = (label: any): string => {
+    try {
+      // Make sure label is a valid date before formatting
+      if (!label) return '';
+      
+      // If label is already a Date object
+      if (label instanceof Date) {
+        return format(label, 'PPpp');
+      }
+      
+      // If label is a timestamp string or number, convert to Date
+      const date = new Date(label);
+      
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        return 'Invalid date';
+      }
+      
+      return format(date, 'PPpp');
+    } catch (error) {
+      console.error('Date formatting error:', error);
+      return 'Invalid date';
+    }
+  };
+  
   return (
     <Card className={`${className} overflow-hidden border-zinc-800 bg-chart-bg`}>
       <div className="flex items-center justify-between p-4 border-b border-zinc-800">
@@ -147,7 +173,7 @@ const BitcoinChart = ({ timeframe, className }: BitcoinChartProps) => {
               contentStyle={{ backgroundColor: '#1E1E1E', borderColor: '#333' }} 
               labelStyle={{ color: '#CCC' }}
               formatter={(value: any) => [`$${Number(value).toLocaleString()}`, 'السعر']}
-              labelFormatter={(label) => format(new Date(label), 'PPpp')}
+              labelFormatter={safeDateFormatter}
             />
             <Area 
               type="monotone" 
