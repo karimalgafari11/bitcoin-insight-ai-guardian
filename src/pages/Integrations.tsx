@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { AppSidebar } from '@/components/AppSidebar';
 import { SidebarTrigger } from '@/components/ui/sidebar';
@@ -11,7 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
-import { ExternalLink, Globe, Bitcoin, Telegram, Globe2, MessageSquare } from 'lucide-react';
+import { ExternalLink, Globe, Bitcoin, MessageSquare, Globe2 } from 'lucide-react';
 
 const Integrations = () => {
   const { t } = useLanguage();
@@ -132,7 +131,7 @@ const Integrations = () => {
   };
 
   return (
-    <div className="flex min-h-screen w-full">
+    <div className="min-h-screen flex w-full">
       <AppSidebar />
       <div className="flex-1 overflow-auto">
         <div className="p-6">
@@ -266,7 +265,7 @@ const Integrations = () => {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center">
-                    <Telegram className="mr-2 h-5 w-5 text-blue-500" />
+                    <MessageSquare className="mr-2 h-5 w-5 text-blue-500" />
                     {t("ربط مع تيليجرام", "Connect with Telegram")}
                   </CardTitle>
                   <CardDescription>

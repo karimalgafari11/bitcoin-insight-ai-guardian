@@ -30,7 +30,7 @@ import {
 
 export function AppSidebar() {
   const { t } = useLanguage();
-  const { user, logout } = useAuth();
+  const { user, signOut } = useAuth(); // Changed from logout to signOut
 
   const menuItems = [
     {
@@ -119,7 +119,7 @@ export function AppSidebar() {
           <LanguageSwitcher />
           {user && (
             <button 
-              onClick={logout} 
+              onClick={signOut} // Changed from logout to signOut
               className="w-full text-sm text-red-500 hover:text-red-600 text-left"
             >
               {t('تسجيل الخروج', 'Logout')}
@@ -131,3 +131,4 @@ export function AppSidebar() {
   );
 }
 
+export default AppSidebar; // Add a default export to fix import issues

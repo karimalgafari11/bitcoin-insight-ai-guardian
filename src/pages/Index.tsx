@@ -2,7 +2,7 @@
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLanguage } from "@/contexts/LanguageContext";
-import AppSidebar from "@/components/AppSidebar";
+import { AppSidebar } from "@/components/AppSidebar"; // Fixed import
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import CryptoDataDisplay from "@/components/CryptoDataDisplay";
 import DashboardMetricsCards from "@/components/dashboard/DashboardMetricsCards";

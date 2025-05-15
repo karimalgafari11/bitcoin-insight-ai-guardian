@@ -12,7 +12,7 @@ interface AuthContextType {
   loading: boolean;
   signUp: (email: string, password: string, username: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
-  signOut: () => Promise<void>;
+  signOut: () => Promise<void>; // Changed from logout to signOut
   resendEmailConfirmation: (email: string) => Promise<void>;
 }
 
@@ -69,7 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loading,
         signUp: handleSignUp,
         signIn: handleSignIn,
-        signOut: async () => {
+        signOut: async () => { // Changed from logout to signOut
           setIsTransitioning(true);
           try {
             await signOut();

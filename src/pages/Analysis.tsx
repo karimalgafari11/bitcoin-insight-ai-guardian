@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import AppSidebar from "@/components/AppSidebar";
+import { AppSidebar } from "@/components/AppSidebar"; // Fixed import
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import BitcoinChart from "@/components/BitcoinChart";
 import BitcoinStats from "@/components/BitcoinStats";
