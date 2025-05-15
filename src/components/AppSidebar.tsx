@@ -23,14 +23,14 @@ import {
   CandlestickChart, 
   BookMarked,
   FileBarChart,
-  MessageCircle,
+  MessageSquare,
   Globe,
   Calculator
 } from 'lucide-react';
 
 export function AppSidebar() {
   const { t } = useLanguage();
-  const { user, signOut } = useAuth(); // Changed from logout to signOut
+  const { user, signOut } = useAuth();
 
   const menuItems = [
     {
@@ -61,7 +61,7 @@ export function AppSidebar() {
     {
       title: t('تحليل الأخبار', 'News Sentiment'),
       url: '/news-sentiment',
-      icon: MessageCircle
+      icon: MessageSquare
     },
     {
       title: t('حاسبة المخاطر', 'Risk Calculator'),
@@ -119,7 +119,7 @@ export function AppSidebar() {
           <LanguageSwitcher />
           {user && (
             <button 
-              onClick={signOut} // Changed from logout to signOut
+              onClick={signOut}
               className="w-full text-sm text-red-500 hover:text-red-600 text-left"
             >
               {t('تسجيل الخروج', 'Logout')}
@@ -131,4 +131,5 @@ export function AppSidebar() {
   );
 }
 
-export default AppSidebar; // Add a default export to fix import issues
+// استخدم export default بالإضافة إلى named export للتوافق مع جميع طرق الاستيراد المستخدمة في الصفحات
+export default AppSidebar;
