@@ -400,6 +400,33 @@ export type Database = {
           },
         ]
       }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          full_name: string | null
+          id: string
+          updated_at: string | null
+          username: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          full_name?: string | null
+          id: string
+          updated_at?: string | null
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string | null
+          username?: string | null
+        }
+        Relationships: []
+      }
       recommendation_feedback: {
         Row: {
           created_at: string | null
@@ -886,7 +913,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      analyze_candlestick_pattern: {
+        Args: { pattern_type: string; candle_data: Json }
+        Returns: Json
+      }
+      backup_user_data: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      generate_smart_recommendation: {
+        Args: { user_id: string; timeframe: string; market_data: Json }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

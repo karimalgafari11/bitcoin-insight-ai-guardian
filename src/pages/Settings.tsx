@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
+import UserSettingsAdvanced from "@/components/UserSettingsAdvanced";
 
 const Settings = () => {
   const { user } = useAuth();
@@ -106,7 +107,7 @@ const Settings = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-zinc-800">
+          <Card className="border-zinc-800 mb-6">
             <CardHeader>
               <CardTitle>{t("إعدادات الحساب", "Account Settings")}</CardTitle>
             </CardHeader>
@@ -121,6 +122,9 @@ const Settings = () => {
               )}
             </CardContent>
           </Card>
+
+          {/* إضافة مكون الإعدادات المتقدمة */}
+          {user && <UserSettingsAdvanced />}
         </div>
       </div>
     </div>
