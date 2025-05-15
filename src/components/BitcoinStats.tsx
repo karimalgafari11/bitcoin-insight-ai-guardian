@@ -3,10 +3,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useCryptoData } from "@/hooks/useCryptoData";
 import { Skeleton } from "@/components/ui/skeleton";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Wifi, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
 import { useState } from "react";
+import { Badge } from "@/components/ui/badge";
 
 type BitcoinStatsProps = {
   className?: string;
@@ -14,7 +15,7 @@ type BitcoinStatsProps = {
 
 const BitcoinStats = ({ className }: BitcoinStatsProps) => {
   const { t } = useLanguage();
-  const { data, loading, error, refreshData } = useCryptoData("bitcoin", "1");
+  const { data, loading, error, refreshData, isRealtime } = useCryptoData("bitcoin", "1");
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   
   // Format currency values
@@ -116,7 +117,20 @@ const BitcoinStats = ({ className }: BitcoinStatsProps) => {
     <Card className={`${className} border-zinc-800`}>
       <CardContent className="p-4">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="font-medium">{t('إحصائيات البيتكوين', 'Bitcoin Stats')}</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="font-medium">{t('إحصائيات البيتكوين', 'Bitcoin Stats')}</h3>
+            {isRealtime ? (
+              <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500">
+                <Wifi className="w-3 h-3 mr-1" />
+                {t('مباشر', 'Live')}
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="bg-orange-500/10 text-orange-500 border-orange-500">
+                <WifiOff className="w-3 h-3 mr-1" />
+                {t('غير مباشر', 'Not Live')}
+              </Badge>
+            )}
+          </div>
           <Button
             variant="outline"
             size="icon"
@@ -144,8 +158,15 @@ const BitcoinStats = ({ className }: BitcoinStatsProps) => {
           ))}
         </div>
         
-        <div className="mt-4 text-xs text-muted-foreground text-right">
-          {t('آخر تحديث', 'Last refresh')}: {lastRefresh.toLocaleTimeString()}
+        <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
+          <div>
+            {isRealtime ? 
+              t('البيانات محدثة بشكل مباشر', 'Data is updated in real-time') : 
+              t('البيانات قد لا تكون محدثة', 'Data may not be current')}
+          </div>
+          <div>
+            {t('آخر تحديث', 'Last refresh')}: {lastRefresh.toLocaleTimeString()}
+          </div>
         </div>
       </CardContent>
     </Card>

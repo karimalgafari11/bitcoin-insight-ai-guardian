@@ -12,11 +12,12 @@ import {
 } from "recharts";
 import { useCryptoData } from "@/hooks/useCryptoData";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Loader2, RefreshCw } from "lucide-react";
+import { Loader2, RefreshCw, Wifi, WifiOff } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { Badge } from "@/components/ui/badge";
 
 type BitcoinChartProps = {
   timeframe: string;
@@ -42,7 +43,7 @@ const BitcoinChart = ({ timeframe, className }: BitcoinChartProps) => {
   };
   
   const days = getDaysFromTimeframe(timeframe);
-  const { data, loading, error, refreshData } = useCryptoData("bitcoin", days);
+  const { data, loading, error, refreshData, isRealtime } = useCryptoData("bitcoin", days);
   
   useEffect(() => {
     if (!data || !data.prices || data.prices.length < 2) return;
@@ -156,7 +157,20 @@ const BitcoinChart = ({ timeframe, className }: BitcoinChartProps) => {
   return (
     <Card className={`${className} overflow-hidden border-zinc-800 bg-chart-bg`}>
       <div className="flex items-center justify-between p-4 border-b border-zinc-800">
-        <div className="font-medium text-lg">BTC/USD {timeframe}</div>
+        <div className="flex items-center gap-2">
+          <div className="font-medium text-lg">BTC/USD {timeframe}</div>
+          {isRealtime ? (
+            <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500">
+              <Wifi className="w-3 h-3 mr-1" />
+              {t('مباشر', 'Live')}
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="bg-orange-500/10 text-orange-500 border-orange-500">
+              <WifiOff className="w-3 h-3 mr-1" />
+              {t('غير مباشر', 'Not Live')}
+            </Badge>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           <div className={`${isPositiveChange ? 'text-bitcoin-green' : 'text-bitcoin-red'}`}>
             {isPositiveChange ? '+' : ''}{percentChange}%
@@ -209,8 +223,15 @@ const BitcoinChart = ({ timeframe, className }: BitcoinChartProps) => {
           </AreaChart>
         </ResponsiveContainer>
         
-        <div className="p-2 text-xs text-muted-foreground text-right">
-          {t('آخر تحديث', 'Last refresh')}: {lastRefresh.toLocaleTimeString()}
+        <div className="p-2 flex items-center justify-between text-xs text-muted-foreground">
+          <div>
+            {isRealtime ? 
+              t('البيانات محدثة بشكل مباشر', 'Data is updated in real-time') : 
+              t('البيانات قد لا تكون محدثة', 'Data may not be current')}
+          </div>
+          <div>
+            {t('آخر تحديث', 'Last refresh')}: {lastRefresh.toLocaleTimeString()}
+          </div>
         </div>
       </CardContent>
     </Card>

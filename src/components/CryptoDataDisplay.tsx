@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useCryptoData } from '@/hooks/useCryptoData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Loader2, RefreshCw } from 'lucide-react';
+import { Loader2, RefreshCw, Wifi, WifiOff } from 'lucide-react';
 import { getSymbolName, formatData } from '@/utils/cryptoUtils';
 import { Button } from '@/components/ui/button';
 import CryptoSelector from './crypto/CryptoSelector';
@@ -12,6 +12,7 @@ import CryptoMarketMetrics from './crypto/CryptoMarketMetrics';
 import CryptoPriceChart from './crypto/CryptoPriceChart';
 import CryptoDisclaimer from './crypto/CryptoDisclaimer';
 import { toast } from '@/components/ui/use-toast';
+import { Badge } from '@/components/ui/badge';
 
 interface CryptoDataDisplayProps {
   defaultCoin?: string;
@@ -23,7 +24,7 @@ const CryptoDataDisplay: React.FC<CryptoDataDisplayProps> = ({ defaultCoin = 'bi
   const [timeframe, setTimeframe] = useState('7');
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   
-  const { data, loading, error, refreshData } = useCryptoData(selectedCoin, timeframe);
+  const { data, loading, error, refreshData, isRealtime } = useCryptoData(selectedCoin, timeframe);
 
   const handleCoinChange = (value: string) => {
     setSelectedCoin(value);
@@ -45,7 +46,20 @@ const CryptoDataDisplay: React.FC<CryptoDataDisplayProps> = ({ defaultCoin = 'bi
   return (
     <Card className="w-full mb-6">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle>{t('بيانات العملة الرقمية', 'Cryptocurrency Data')}</CardTitle>
+        <div className="flex items-center gap-2">
+          <CardTitle>{t('بيانات العملة الرقمية', 'Cryptocurrency Data')}</CardTitle>
+          {isRealtime ? (
+            <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500">
+              <Wifi className="w-3 h-3 mr-1" />
+              {t('بيانات مباشرة', 'Live Data')}
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="bg-orange-500/10 text-orange-500 border-orange-500">
+              <WifiOff className="w-3 h-3 mr-1" />
+              {t('بيانات غير مباشرة', 'Non-Live Data')}
+            </Badge>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           <Button 
             variant="outline" 
@@ -97,8 +111,15 @@ const CryptoDataDisplay: React.FC<CryptoDataDisplayProps> = ({ defaultCoin = 'bi
             
             <CryptoPriceChart priceData={formatData(data.prices)} />
             
-            <div className="mt-4 text-xs text-muted-foreground text-right">
-              {t('آخر تحديث', 'Last refresh')}: {lastRefresh.toLocaleTimeString()}
+            <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
+              <div>
+                {isRealtime ? 
+                  t('البيانات محدثة بشكل مباشر', 'Data is updated in real-time') : 
+                  t('البيانات قد لا تكون محدثة', 'Data may not be current')}
+              </div>
+              <div>
+                {t('آخر تحديث', 'Last refresh')}: {lastRefresh.toLocaleTimeString()}
+              </div>
             </div>
             
             <CryptoDisclaimer />

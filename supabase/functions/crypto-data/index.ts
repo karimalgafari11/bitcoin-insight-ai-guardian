@@ -23,7 +23,7 @@ serve(async (req) => {
     }
     
     // Extract and validate parameters with defaults
-    const { coinId = "bitcoin", days = "7", currency = "usd" } = requestData;
+    const { coinId = "bitcoin", days = "7", currency = "usd", realtime = false } = requestData;
     
     // Input validation
     if (typeof coinId !== 'string' || typeof days !== 'string' || typeof currency !== 'string') {
@@ -33,7 +33,7 @@ serve(async (req) => {
       );
     }
     
-    console.log(`Fetching data for: ${coinId}, days: ${days}, currency: ${currency}`);
+    console.log(`Fetching data for: ${coinId}, days: ${days}, currency: ${currency}, realtime: ${realtime}`);
     
     // Implement request timeout handling
     const timeoutPromise = new Promise((_, reject) => {
@@ -45,10 +45,17 @@ serve(async (req) => {
     
     // Race against timeout
     const data = await Promise.race([dataPromise, timeoutPromise]);
+
+    // Add isRealtime flag to response
+    const responseData = {
+      ...data,
+      isRealtime: !data.isMockData,
+      fetchedAt: new Date().toISOString()
+    };
     
     // Return the formatted data
     return new Response(
-      JSON.stringify(data),
+      JSON.stringify(responseData),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {

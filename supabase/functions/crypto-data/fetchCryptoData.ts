@@ -10,49 +10,97 @@ import { generateMockData } from "./mockData.ts";
 export async function fetchCryptoData(coinId: string, days: string, currency: string) {
   // Get the CoinMarketCap API key from Supabase secrets
   const coinmarketcapApiKey = Deno.env.get("Coinmarketcup_api_key") || "";
+  const coingeckoApiKey = Deno.env.get("Coingecko_api_key") || "";
   
-  if (!coinmarketcapApiKey) {
-    console.error("CoinMarketCap API key not found, using mock data instead");
-    // Return mock data when API key is not available
-    return generateMockData(coinId, days, currency);
+  // Try to fetch data from multiple sources
+  try {
+    // First try CoinMarketCap if we have an API key
+    if (coinmarketcapApiKey) {
+      try {
+        console.log("Attempting to fetch from CoinMarketCap");
+        const data = await fetchFromCoinMarketCap(coinId, days, currency, coinmarketcapApiKey);
+        return {
+          ...data,
+          isMockData: false,
+          dataSource: "coinmarketcap"
+        };
+      } catch (error) {
+        console.error("CoinMarketCap fetch failed:", error.message);
+        // Continue to next source if this one fails
+      }
+    }
+    
+    // Next try CoinGecko
+    try {
+      console.log("Attempting to fetch from CoinGecko");
+      const data = await fetchFromCoinGecko(coinId, days, currency, coingeckoApiKey);
+      return {
+        ...data,
+        isMockData: false,
+        dataSource: "coingecko"
+      };
+    } catch (error) {
+      console.error("CoinGecko fetch failed:", error.message);
+      // Continue to next source if this one fails
+    }
+    
+    // Try public alternative APIs
+    try {
+      console.log("Attempting to fetch from public API");
+      const data = await fetchFromPublicApi(coinId, days, currency);
+      return {
+        ...data,
+        isMockData: false,
+        dataSource: "publicapi"
+      };
+    } catch (error) {
+      console.error("Public API fetch failed:", error.message);
+      // Fall back to mock data if all sources fail
+    }
+    
+    // If all else fails, return mock data with a flag
+    console.log("All API sources failed, returning mock data");
+    const mockData = generateMockData(coinId, days, currency);
+    return {
+      ...mockData,
+      isMockData: true,
+      dataSource: "mock"
+    };
+  } catch (finalError) {
+    console.error("All fetch attempts failed:", finalError.message);
+    // Generate mock data as a last resort
+    const mockData = generateMockData(coinId, days, currency);
+    return {
+      ...mockData,
+      isMockData: true,
+      dataSource: "mock",
+      error: finalError.message
+    };
   }
+}
 
+/**
+ * Fetches data from CoinMarketCap API
+ */
+async function fetchFromCoinMarketCap(coinId: string, days: string, currency: string, apiKey: string) {
   const symbol = coinSymbolMap[coinId] || coinId.toUpperCase();
   const interval = intervalMap[days] || '1d';
   
-  try {
-    console.log(`Fetching real data for ${symbol} with ${interval} interval`);
-    
-    // Get current price data
-    const quoteData = await fetchCurrentPriceData(symbol, currency, coinmarketcapApiKey);
-    
-    // Get coin ID from symbol
-    const cmcCoinId = await fetchCoinId(symbol, coinmarketcapApiKey);
-    
-    // Get historical OHLCV data
-    const historicalData = await fetchHistoricalData(cmcCoinId, interval, days, currency, coinmarketcapApiKey);
-    
-    console.log("Successfully fetched CoinMarketCap data");
-    
-    // Format the data
-    return formatHistoricalData(historicalData, quoteData, currency);
-  } catch (error) {
-    console.error(`Error fetching data from CoinMarketCap: ${error.message}`);
-    console.error("Stack trace:", error.stack);
-    
-    // Try fallback data source if primary fails
-    try {
-      console.log("Attempting to fetch from fallback source");
-      const fallbackData = await fetchFallbackData(coinId, days, currency);
-      return fallbackData;
-    } catch (fallbackError) {
-      console.error(`Fallback source failed: ${fallbackError.message}`);
-      
-      // Return mock data as a last resort
-      console.log("Using mock data as fallback");
-      return generateMockData(coinId, days, currency);
-    }
-  }
+  console.log(`Fetching from CoinMarketCap for ${symbol} with ${interval} interval`);
+  
+  // Get current price data
+  const quoteData = await fetchCurrentPriceData(symbol, currency, apiKey);
+  
+  // Get coin ID from symbol
+  const cmcCoinId = await fetchCoinId(symbol, apiKey);
+  
+  // Get historical OHLCV data
+  const historicalData = await fetchHistoricalData(cmcCoinId, interval, days, currency, apiKey);
+  
+  console.log("Successfully fetched CoinMarketCap data");
+  
+  // Format the data
+  return formatHistoricalData(historicalData, quoteData, currency);
 }
 
 /**
@@ -133,22 +181,18 @@ async function fetchHistoricalData(coinId: number, interval: string, days: strin
 }
 
 /**
- * Fallback data source using CoinGecko public API
+ * Fetches data from CoinGecko API
  */
-async function fetchFallbackData(coinId: string, days: string, currency: string) {
-  // Check if we have a CoinGecko API key for higher rate limits
-  const coingeckoApiKey = Deno.env.get("Coingecko_api_key");
-  const baseUrl = "https://api.coingecko.com/api/v3";
-  
+async function fetchFromCoinGecko(coinId: string, days: string, currency: string, apiKey?: string) {
   // Map coin IDs to CoinGecko format if needed
   const geckoId = mapToGeckoId(coinId);
   
-  // Get current price data
-  let pricesUrl = `${baseUrl}/coins/${geckoId}/market_chart?vs_currency=${currency}&days=${days}`;
+  // Build base URL
+  let pricesUrl = `https://api.coingecko.com/api/v3/coins/${geckoId}/market_chart?vs_currency=${currency}&days=${days}`;
   
-  // Add API key if available
-  if (coingeckoApiKey) {
-    pricesUrl += `&x_cg_pro_api_key=${coingeckoApiKey}`;
+  // Add API key if available for higher rate limits
+  if (apiKey) {
+    pricesUrl += `&x_cg_pro_api_key=${apiKey}`;
   }
   
   console.log(`Fetching from CoinGecko: ${pricesUrl}`);
@@ -162,11 +206,11 @@ async function fetchFallbackData(coinId: string, days: string, currency: string)
   const pricesData = await pricesResponse.json();
   
   // Get additional metadata
-  let infoUrl = `${baseUrl}/coins/${geckoId}?localization=false&tickers=false&community_data=false&developer_data=false`;
+  let infoUrl = `https://api.coingecko.com/api/v3/coins/${geckoId}?localization=false&tickers=false&community_data=false&developer_data=false`;
   
   // Add API key if available
-  if (coingeckoApiKey) {
-    infoUrl += `&x_cg_pro_api_key=${coingeckoApiKey}`;
+  if (apiKey) {
+    infoUrl += `&x_cg_pro_api_key=${apiKey}`;
   }
   
   const infoResponse = await fetch(infoUrl);
@@ -196,6 +240,67 @@ async function fetchFallbackData(coinId: string, days: string, currency: string)
 }
 
 /**
+ * Fetch from available public APIs as fallback
+ */
+async function fetchFromPublicApi(coinId: string, days: string, currency: string) {
+  // Try another public API endpoint (example)
+  const publicApiUrl = `https://api.coincap.io/v2/assets/${coinId}/history?interval=h1&start=${getStartTime(days)}&end=${Date.now()}`;
+  
+  console.log(`Fetching from public API: ${publicApiUrl}`);
+  
+  const response = await fetch(publicApiUrl);
+  
+  if (!response.ok) {
+    throw new Error(`Public API error: ${response.status}`);
+  }
+  
+  const data = await response.json();
+  
+  // Get current price data
+  const currentDataUrl = `https://api.coincap.io/v2/assets/${coinId}`;
+  const currentResponse = await fetch(currentDataUrl);
+  
+  if (!currentResponse.ok) {
+    throw new Error(`Public API current data error: ${currentResponse.status}`);
+  }
+  
+  const currentData = await currentResponse.json();
+  
+  // Convert the data format to match our expected structure
+  const prices: [number, number][] = data.data.map((item: any) => [
+    parseInt(item.time),
+    parseFloat(item.priceUsd)
+  ]);
+  
+  // Create simplified market caps and volumes (if no data available)
+  const market_caps: [number, number][] = prices.map(([time, price]) => [
+    time,
+    parseFloat(currentData.data.marketCapUsd) * (price / parseFloat(currentData.data.priceUsd))
+  ]);
+  
+  const total_volumes: [number, number][] = prices.map(([time]) => [
+    time,
+    parseFloat(currentData.data.volumeUsd24Hr) / 24
+  ]);
+  
+  return {
+    prices,
+    market_caps,
+    total_volumes,
+    metadata: {
+      name: currentData.data.name,
+      symbol: currentData.data.symbol,
+      current_price: parseFloat(currentData.data.priceUsd),
+      market_cap: parseFloat(currentData.data.marketCapUsd),
+      volume_24h: parseFloat(currentData.data.volumeUsd24Hr),
+      percent_change_24h: parseFloat(currentData.data.changePercent24Hr),
+      percent_change_7d: 0, // Not available from this API
+      last_updated: new Date().toISOString(),
+    },
+  };
+}
+
+/**
  * Map coin IDs to CoinGecko format
  */
 function mapToGeckoId(coinId: string): string {
@@ -209,4 +314,13 @@ function mapToGeckoId(coinId: string): string {
   };
   
   return mapping[coinId] || coinId;
+}
+
+/**
+ * Calculate start time based on days
+ */
+function getStartTime(days: string): number {
+  const now = Date.now();
+  const daysInMs = parseInt(days) * 24 * 60 * 60 * 1000;
+  return now - daysInMs;
 }

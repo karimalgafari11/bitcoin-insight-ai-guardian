@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 
@@ -23,9 +23,11 @@ export function useCryptoData(coinId: string = 'bitcoin', days: string = '7', cu
   const [data, setData] = useState<CryptoMarketData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isRealtime, setIsRealtime] = useState(false);
   
   // Use a ref to store the fetch timer
   const fetchTimerRef = useRef<number | null>(null);
+  const realtimeChannelRef = useRef<any>(null);
   
   // Track the last fetch time to avoid excessive API calls
   const lastFetchRef = useRef<number>(0);
@@ -34,7 +36,7 @@ export function useCryptoData(coinId: string = 'bitcoin', days: string = '7', cu
   const paramsRef = useRef({ coinId, days, currency });
   
   // Function to fetch data
-  const fetchCryptoData = async (force = false) => {
+  const fetchCryptoData = useCallback(async (force = false) => {
     // Don't fetch again if we're already loading, unless force=true
     if (loading && !force) return;
     
@@ -63,7 +65,8 @@ export function useCryptoData(coinId: string = 'bitcoin', days: string = '7', cu
         body: {
           coinId,
           days,
-          currency
+          currency,
+          realtime: true
         }
       });
 
@@ -85,6 +88,7 @@ export function useCryptoData(coinId: string = 'bitcoin', days: string = '7', cu
       }
 
       setData(responseData as CryptoMarketData);
+      setIsRealtime(responseData.isRealtime || false);
       
       // Update the last fetch time
       lastFetchRef.current = now;
@@ -100,12 +104,41 @@ export function useCryptoData(coinId: string = 'bitcoin', days: string = '7', cu
     } finally {
       setLoading(false);
     }
-  };
+  }, [coinId, days, currency, loading]);
+  
+  // Set up realtime channel for updates
+  const setupRealtimeChannel = useCallback(() => {
+    if (realtimeChannelRef.current) {
+      supabase.removeChannel(realtimeChannelRef.current);
+    }
+
+    // Setup a channel for real-time updates
+    const channel = supabase
+      .channel(`crypto-${coinId}-${days}-${currency}`)
+      .on('broadcast', { event: 'crypto-update' }, (payload) => {
+        if (payload.payload && 
+            payload.payload.coinId === coinId && 
+            payload.payload.days === days && 
+            payload.payload.currency === currency) {
+          console.log('Received real-time crypto update:', payload.payload);
+          setData(payload.payload.data);
+          setIsRealtime(true);
+          lastFetchRef.current = Date.now();
+        }
+      })
+      .subscribe();
+
+    realtimeChannelRef.current = channel;
+    return channel;
+  }, [coinId, days, currency]);
   
   // Set up polling for real-time updates
   useEffect(() => {
     // Always fetch data immediately on mount or when parameters change
     fetchCryptoData(true);
+    
+    // Set up realtime channel
+    const channel = setupRealtimeChannel();
     
     // Set up polling interval (5 minutes for standard data, 1 minute for 1-day view)
     const intervalMs = days === '1' ? 60000 : 300000;
@@ -126,13 +159,21 @@ export function useCryptoData(coinId: string = 'bitcoin', days: string = '7', cu
         window.clearInterval(fetchTimerRef.current);
         fetchTimerRef.current = null;
       }
+      if (realtimeChannelRef.current) {
+        supabase.removeChannel(realtimeChannelRef.current);
+        realtimeChannelRef.current = null;
+      }
     };
-  }, [coinId, days, currency]);
+  }, [coinId, days, currency, fetchCryptoData, setupRealtimeChannel]);
   
   // Function to manually refresh data
-  const refreshData = () => {
+  const refreshData = useCallback(() => {
     fetchCryptoData(true);
-  };
+    toast({
+      title: "جاري التحديث",
+      description: "يتم تحديث بيانات العملة الرقمية الآن",
+    });
+  }, [fetchCryptoData]);
 
-  return { data, loading, error, refreshData };
+  return { data, loading, error, refreshData, isRealtime };
 }
