@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { CryptoMarketData } from '@/types/crypto';
 import { enqueueRequest } from './apiQueue';
-import { getFromCache, storeInCache, getFallbackFromCache, setPendingRequest, removePendingRequest, hasPendingRequest } from './cache';
+import { getFromCache, storeInCache, getFallbackFromCache, setPendingRequest, removePendingRequest, hasPendingRequest, getPendingRequest } from './cache';
 
 /**
  * Main function to fetch cryptocurrency data
@@ -163,4 +163,3 @@ export async function fetchCryptoData(
     };
   }
 }
-
