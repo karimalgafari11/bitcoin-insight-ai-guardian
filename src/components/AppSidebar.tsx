@@ -14,7 +14,7 @@ import {
   SidebarMenuButton
 } from '@/components/ui/sidebar';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   LineChart, 
@@ -31,6 +31,7 @@ import {
 export function AppSidebar() {
   const { t } = useLanguage();
   const { user, signOut } = useAuth();
+  const location = useLocation();
 
   const menuItems = [
     {
@@ -101,7 +102,10 @@ export function AppSidebar() {
             <SidebarMenu>
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.url}>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton 
+                    asChild
+                    isActive={location.pathname === item.url}
+                  >
                     <Link to={item.url}>
                       <item.icon className="h-4 w-4 mr-2" />
                       <span>{item.title}</span>
