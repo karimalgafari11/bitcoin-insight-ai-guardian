@@ -16,11 +16,11 @@ const Index = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
   
-  // Auto-redirect to dashboard from root path
+  // Auto-redirect to dashboard from root path, but ONLY if we're on exactly "/"
   useEffect(() => {
     // Only redirect if we're on exactly the root path "/"
     if (window.location.pathname === "/") {
-      navigate("/dashboard");
+      navigate("/dashboard", { replace: true });
     }
   }, [navigate]);
   

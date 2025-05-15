@@ -44,7 +44,7 @@ export const SidebarMenuButton = React.forwardRef<
       size = "default",
       tooltip,
       className,
-      onClick,  // Add explicit onClick handler
+      onClick,
       ...props
     },
     ref
@@ -52,18 +52,22 @@ export const SidebarMenuButton = React.forwardRef<
     const Comp = asChild ? Slot : "button";
     const { isMobile, state } = useSidebar();
 
+    const handleClick = (event: React.MouseEvent<HTMLElement>) => {
+      // If it's a Link component from react-router-dom (which sets an onClick handler),
+      // we should let it handle the navigation without interference
+      if (onClick) {
+        // Call the original onClick (which might be from Link)
+        onClick(event);
+      }
+    };
+
     const button = (
       <Comp
         ref={ref}
         data-sidebar="menu-button"
         data-size={size}
         data-active={isActive}
-        onClick={(event) => {
-          // Prevent default only if it's not handled properly
-          if (onClick) {
-            onClick(event);
-          }
-        }}
+        onClick={handleClick}
         className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
         {...props}
       />
