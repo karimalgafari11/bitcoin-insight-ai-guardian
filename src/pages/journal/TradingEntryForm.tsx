@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -10,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import AppSidebar from "@/components/AppSidebar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TradeFormData } from "@/types/trade";
 
 const TradingEntryFormPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -17,7 +17,7 @@ const TradingEntryFormPage = () => {
   const navigate = useNavigate();
   const { fetchTrade } = useTrades();
   const [loading, setLoading] = useState(!!id);
-  const [tradeData, setTradeData] = useState<any>(null);
+  const [tradeData, setTradeData] = useState<TradeFormData | null>(null);
 
   const isEditing = !!id;
 
@@ -26,7 +26,27 @@ const TradingEntryFormPage = () => {
       if (id) {
         setLoading(true);
         const trade = await fetchTrade(id);
-        setTradeData(trade);
+        if (trade) {
+          // Only keep fields that are in TradeFormData
+          const formData: TradeFormData = {
+            symbol: trade.symbol,
+            entry_date: trade.entry_date,
+            exit_date: trade.exit_date,
+            entry_price: trade.entry_price,
+            exit_price: trade.exit_price,
+            stop_loss: trade.stop_loss,
+            take_profit: trade.take_profit,
+            size: trade.size,
+            direction: trade.direction,
+            status: trade.status,
+            strategy: trade.strategy,
+            setup_type: trade.setup_type,
+            timeframe: trade.timeframe,
+            notes: trade.notes,
+            tags: trade.tags
+          };
+          setTradeData(formData);
+        }
         setLoading(false);
       }
     };

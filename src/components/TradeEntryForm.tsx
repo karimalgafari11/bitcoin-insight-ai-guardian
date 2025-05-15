@@ -96,8 +96,22 @@ export const TradeEntryForm = ({
       }
 
       // تجهيز البيانات للإرسال مع التأكد من وجود جميع الحقول المطلوبة
+      // Make sure all required fields are included and not optional
       const formattedData = {
-        ...data,
+        symbol: data.symbol,
+        entry_date: data.entry_date,
+        exit_date: data.exit_date,
+        entry_price: data.entry_price,
+        exit_price: data.exit_price,
+        stop_loss: data.stop_loss,
+        take_profit: data.take_profit,
+        size: data.size,
+        direction: data.direction,
+        status: data.status,
+        strategy: data.strategy || null,
+        setup_type: data.setup_type || null,
+        timeframe: data.timeframe || null,
+        notes: data.notes || null,
         user_id: authData.user.id
       };
 

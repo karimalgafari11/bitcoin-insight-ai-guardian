@@ -28,6 +28,7 @@ export const useTrades = () => {
       const { data, error } = await supabase
         .from("trading_entries")
         .select("*")
+        .eq("user_id", authData.user.id)
         .order("entry_date", { ascending: false });
 
       if (error) throw error;
