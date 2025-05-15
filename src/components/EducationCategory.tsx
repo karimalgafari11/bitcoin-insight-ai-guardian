@@ -5,6 +5,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { ChevronRight } from "lucide-react";
 import EducationLesson from "./EducationLesson";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { IconType, getIcon } from "@/utils/iconUtil";
 
 export interface Lesson {
   id: string;
@@ -22,7 +23,7 @@ export interface CategoryProps {
   titleEn: string;
   description: string;
   descriptionEn: string;
-  icon: React.ReactNode;
+  iconType: IconType;
   lessons: Lesson[];
 }
 
@@ -32,7 +33,7 @@ const EducationCategory: React.FC<CategoryProps> = ({
   titleEn,
   description,
   descriptionEn,
-  icon,
+  iconType,
   lessons
 }) => {
   const { t } = useLanguage();
@@ -46,7 +47,7 @@ const EducationCategory: React.FC<CategoryProps> = ({
     <Card className="mb-6 border-zinc-800 hover:shadow-lg transition-all">
       <CardHeader className="flex flex-row items-center gap-3">
         <div className="p-2 bg-primary/10 rounded-md">
-          {icon}
+          {getIcon(iconType)}
         </div>
         <div>
           <CardTitle>{t(title, titleEn)}</CardTitle>

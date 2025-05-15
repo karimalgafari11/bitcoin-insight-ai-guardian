@@ -1,6 +1,3 @@
-
-import React from "react";
-import { BookText, GraduationCap, LineChart, BookOpen, Presentation, Video } from "lucide-react";
 import { CategoryProps } from "@/components/EducationCategory";
 
 export const educationCategories: CategoryProps[] = [
@@ -10,7 +7,7 @@ export const educationCategories: CategoryProps[] = [
     titleEn: "Bitcoin Basics",
     description: "تعلم المفاهيم الأساسية للبيتكوين وكيفية عمله",
     descriptionEn: "Learn the fundamental concepts of Bitcoin and how it works",
-    icon: <BookText className="h-5 w-5 text-primary" />,
+    iconType: "bookText",
     lessons: [
       {
         id: "what-is-bitcoin",
@@ -78,7 +75,7 @@ export const educationCategories: CategoryProps[] = [
     titleEn: "Technical Analysis",
     description: "تعلم كيفية تحليل الرسوم البيانية واكتشاف الأنماط",
     descriptionEn: "Learn how to analyze charts and identify patterns",
-    icon: <LineChart className="h-5 w-5 text-primary" />,
+    iconType: "lineChart",
     lessons: [
       {
         id: "chart-basics",
@@ -196,7 +193,7 @@ export const educationCategories: CategoryProps[] = [
     titleEn: "Trading Strategies",
     description: "استكشاف استراتيجيات تداول البيتكوين المختلفة",
     descriptionEn: "Explore different Bitcoin trading strategies",
-    icon: <GraduationCap className="h-5 w-5 text-primary" />,
+    iconType: "graduationCap",
     lessons: [
       {
         id: "trend-following",
@@ -376,7 +373,7 @@ export const educationCategories: CategoryProps[] = [
     titleEn: "Risk Management",
     description: "تعلم كيفية حماية استثماراتك وتقليل الخسائر",
     descriptionEn: "Learn how to protect your investments and minimize losses",
-    icon: <BookOpen className="h-5 w-5 text-primary" />,
+    iconType: "bookOpen",
     lessons: [
       {
         id: "position-sizing",
@@ -552,7 +549,7 @@ export const educationCategories: CategoryProps[] = [
     titleEn: "Crypto Markets",
     description: "فهم كيفية عمل أسواق العملات الرقمية والبورصات",
     descriptionEn: "Understanding how crypto markets and exchanges work",
-    icon: <Presentation className="h-5 w-5 text-primary" />,
+    iconType: "presentation",
     lessons: [
       {
         id: "exchanges",
@@ -828,7 +825,7 @@ export const educationCategories: CategoryProps[] = [
     titleEn: "Video Tutorials",
     description: "تعلم من خلال مقاطع الفيديو التعليمية",
     descriptionEn: "Learn through educational video materials",
-    icon: <Video className="h-5 w-5 text-primary" />,
+    iconType: "video",
     lessons: [
       {
         id: "trading-basics-video",
