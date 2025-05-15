@@ -1,71 +1,87 @@
 
--- Create table for caching cryptocurrency data
+-- Create crypto cache table if it doesn't exist
 CREATE TABLE IF NOT EXISTS public.crypto_data_cache (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id BIGSERIAL PRIMARY KEY,
   coin_id TEXT NOT NULL,
   days TEXT NOT NULL,
   currency TEXT NOT NULL,
-  data_source TEXT,
   data JSONB NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
 );
 
--- Create index for faster lookups
-CREATE INDEX IF NOT EXISTS idx_crypto_data_cache_lookup
-ON public.crypto_data_cache (coin_id, days, currency);
+-- Index for faster lookups
+CREATE INDEX IF NOT EXISTS idx_crypto_cache_lookup 
+ON public.crypto_data_cache(coin_id, days, currency);
 
--- Create index on updated_at for cleanup operations
-CREATE INDEX IF NOT EXISTS idx_crypto_data_cache_updated_at
-ON public.crypto_data_cache (updated_at);
+-- Index for cleanup by date
+CREATE INDEX IF NOT EXISTS idx_crypto_cache_created_at 
+ON public.crypto_data_cache(created_at);
 
--- Enable row-level security
-ALTER TABLE public.crypto_data_cache ENABLE ROW LEVEL SECURITY;
-
--- Create public access policy (read-only for everyone)
-CREATE POLICY "Allow public read access"
-  ON public.crypto_data_cache
-  FOR SELECT
-  TO public
-  USING (true);
-
--- Function that cleans up old cache entries (keep last 24 hours only)
-CREATE OR REPLACE FUNCTION public.clean_crypto_cache() RETURNS void AS $$
+-- Create a function to create the table if it doesn't exist
+-- This is used by the edge function
+CREATE OR REPLACE FUNCTION public.create_crypto_cache_if_not_exists()
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
 BEGIN
-  DELETE FROM public.crypto_data_cache 
-  WHERE updated_at < (now() - INTERVAL '24 hours');
+  -- Check if the table exists, if not create it
+  IF NOT EXISTS (
+    SELECT FROM pg_catalog.pg_tables 
+    WHERE schemaname = 'public' 
+    AND tablename = 'crypto_data_cache'
+  ) THEN
+    -- Create the table
+    CREATE TABLE public.crypto_data_cache (
+      id BIGSERIAL PRIMARY KEY,
+      coin_id TEXT NOT NULL,
+      days TEXT NOT NULL,
+      currency TEXT NOT NULL,
+      data JSONB NOT NULL,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
+    );
+
+    -- Create indexes
+    CREATE INDEX idx_crypto_cache_lookup 
+    ON public.crypto_data_cache(coin_id, days, currency);
+    
+    CREATE INDEX idx_crypto_cache_created_at 
+    ON public.crypto_data_cache(created_at);
+  END IF;
+END;
+$$;
+
+-- Create the broadcasts table for realtime updates if it doesn't exist
+CREATE TABLE IF NOT EXISTS public.realtime_broadcasts (
+    id BIGSERIAL PRIMARY KEY,
+    channel TEXT NOT NULL,
+    event TEXT NOT NULL,
+    payload JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
+);
+
+-- Enable realtime on the broadcasts table
+ALTER PUBLICATION supabase_realtime ADD TABLE realtime_broadcasts;
+
+-- Create a trigger function for cleanup
+CREATE OR REPLACE FUNCTION cleanup_old_broadcasts() RETURNS TRIGGER AS $$
+BEGIN
+  DELETE FROM realtime_broadcasts 
+  WHERE created_at < NOW() - INTERVAL '1 day';
+  RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
 
--- Create table for broadcast messages to enable realtime updates
-CREATE TABLE IF NOT EXISTS public.broadcast_messages (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  channel TEXT NOT NULL,
-  event TEXT NOT NULL,
-  payload JSONB NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
-);
-
--- Enable row-level security
-ALTER TABLE public.broadcast_messages ENABLE ROW LEVEL SECURITY;
-
--- Create public access policy (read-only for everyone)
-CREATE POLICY "Allow public read access"
-  ON public.broadcast_messages
-  FOR SELECT
-  TO public
-  USING (true);
-
--- Enable the tables for realtime
-BEGIN;
-  -- Enable the realtime extension
-  CREATE EXTENSION IF NOT EXISTS pg_net;
-  
-  -- Enable REPLICA IDENTITY FULL for all needed tables
-  ALTER TABLE public.crypto_data_cache REPLICA IDENTITY FULL;
-  ALTER TABLE public.broadcast_messages REPLICA IDENTITY FULL;
-  
-  -- Add tables to the realtime publication
-  DROP PUBLICATION IF EXISTS supabase_realtime;
-  CREATE PUBLICATION supabase_realtime FOR TABLE public.crypto_data_cache, public.broadcast_messages;
-COMMIT;
+-- Create the cleanup trigger if it doesn't exist
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger WHERE tgname = 'trigger_cleanup_broadcasts'
+  ) THEN
+    CREATE TRIGGER trigger_cleanup_broadcasts
+    AFTER INSERT ON realtime_broadcasts
+    FOR EACH STATEMENT
+    EXECUTE PROCEDURE cleanup_old_broadcasts();
+  END IF;
+END;
+$$;

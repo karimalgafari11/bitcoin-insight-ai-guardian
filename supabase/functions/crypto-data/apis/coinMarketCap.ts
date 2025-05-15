@@ -6,24 +6,48 @@ import { coinSymbolMap, intervalMap } from "../coinSymbolMap.ts";
  * Fetches cryptocurrency data from CoinMarketCap API
  */
 export async function fetchFromCoinMarketCap(coinId: string, days: string, currency: string, apiKey: string) {
+  if (!apiKey) {
+    throw new Error('CoinMarketCap API key is missing');
+  }
+
   const symbol = coinSymbolMap[coinId] || coinId.toUpperCase();
   const interval = intervalMap[days] || '1d';
   
   console.log(`Fetching from CoinMarketCap for ${symbol} with ${interval} interval`);
   
-  // Get current price data
-  const quoteData = await fetchCurrentPriceData(symbol, currency, apiKey);
-  
-  // Get coin ID from symbol
-  const cmcCoinId = await fetchCoinId(symbol, apiKey);
-  
-  // Get historical OHLCV data
-  const historicalData = await fetchHistoricalData(cmcCoinId, interval, days, currency, apiKey);
-  
-  console.log("Successfully fetched CoinMarketCap data");
-  
-  // Format the data
-  return formatHistoricalData(historicalData, quoteData, currency);
+  // Test API key validity with a simple request first
+  try {
+    const testUrl = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/map?limit=1";
+    const testResponse = await fetch(testUrl, {
+      headers: {
+        "X-CMC_PRO_API_KEY": apiKey,
+        "Accept": "application/json",
+      },
+    });
+    
+    if (!testResponse.ok) {
+      const errorText = await testResponse.text();
+      throw new Error(`CoinMarketCap API key test failed: ${testResponse.status} - ${errorText}`);
+    }
+    
+    // Proceed with the actual data fetching if test passed
+    // Get current price data
+    const quoteData = await fetchCurrentPriceData(symbol, currency, apiKey);
+    
+    // Get coin ID from symbol
+    const cmcCoinId = await fetchCoinId(symbol, apiKey);
+    
+    // Get historical OHLCV data
+    const historicalData = await fetchHistoricalData(cmcCoinId, interval, days, currency, apiKey);
+    
+    console.log("Successfully fetched CoinMarketCap data");
+    
+    // Format the data
+    return formatHistoricalData(historicalData, quoteData, currency);
+  } catch (error) {
+    console.error(`CoinMarketCap API error: ${error.message}`);
+    throw error;
+  }
 }
 
 /**

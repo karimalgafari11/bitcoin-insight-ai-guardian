@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Card, CardContent } from "@/components/ui/card";
 import BitcoinChart from "@/components/BitcoinChart";
@@ -10,10 +10,15 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useLanguage } from "@/contexts/LanguageContext";
 import CryptoDataDisplay from "@/components/CryptoDataDisplay";
 import TimeframeSelector from "@/components/TimeframeSelector";
+import { Button } from "@/components/ui/button";
+import { RefreshCw } from "lucide-react";
+import { toast } from "@/components/ui/use-toast";
+import { useCryptoData } from "@/hooks/useCryptoData";
 
 const Dashboard = () => {
   const { t } = useLanguage();
   const [currentTimeframe, setCurrentTimeframe] = useState<"4h" | "1d" | "1w" | "1m">("1d");
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Map UI timeframes to API days parameter
   const timeframeToDays = {
@@ -27,6 +32,14 @@ const Dashboard = () => {
     setCurrentTimeframe(timeframe);
   };
 
+  const handleRefreshAll = useCallback(() => {
+    setRefreshKey(prev => prev + 1);
+    toast({
+      title: t("تحديث البيانات", "Refreshing Data"),
+      description: t("جاري تحديث جميع البيانات...", "Refreshing all data..."),
+    });
+  }, [t]);
+
   return (
     <div className="flex min-h-screen w-full">
       <AppSidebar />
@@ -37,6 +50,15 @@ const Dashboard = () => {
               {t("لوحة المعلومات", "Dashboard")}
             </h1>
             <div className="flex items-center gap-4">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleRefreshAll}
+                className="gap-2"
+              >
+                <RefreshCw className="h-4 w-4" />
+                {t("تحديث الكل", "Refresh All")}
+              </Button>
               <SidebarTrigger className="bg-white dark:bg-gray-800 shadow-sm" />
             </div>
           </div>
@@ -47,16 +69,16 @@ const Dashboard = () => {
                 <div className="flex justify-end mb-4">
                   <TimeframeSelector onTimeframeChange={handleTimeframeChange} />
                 </div>
-                <BitcoinChart timeframe={currentTimeframe} />
+                <BitcoinChart key={`chart-${refreshKey}`} timeframe={currentTimeframe} />
               </CardContent>
             </Card>
             <div className="space-y-6">
-              <BitcoinStats />
+              <BitcoinStats key={`stats-${refreshKey}`} />
               <TradingRecommendation />
             </div>
           </div>
 
-          <CryptoDataDisplay defaultCoin="bitcoin" />
+          <CryptoDataDisplay key={`crypto-${refreshKey}`} defaultCoin="bitcoin" />
 
           <div className="mb-6">
             <LatestNews />

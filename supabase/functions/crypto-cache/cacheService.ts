@@ -1,7 +1,9 @@
 
+// Cache service for cryptocurrency data
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.20.0";
 import { corsHeaders } from "./cors.ts";
 
+// Type definition for crypto requests
 export interface CryptoRequest {
   coinId: string;
   days: string;
@@ -9,156 +11,171 @@ export interface CryptoRequest {
   forceRefresh?: boolean;
 }
 
-// Reduced cache TTL for more frequent updates
-const CACHE_TTL_STANDARD = 300000; // 5 minutes (standard)
-const CACHE_TTL_SHORT = 60000;     // 1 minute (for short timeframes)
+// Cache TTL in seconds
+const CACHE_TTL = 300; // 5 minutes
+const CACHE_STALE_TTL = 3600; // 1 hour (time we consider cache stale but still usable)
 
-export async function getCachedData(
-  supabase: any,
-  { coinId, days, currency, forceRefresh = false }: CryptoRequest
-) {
-  // Skip cache check if force refresh is requested
-  if (forceRefresh) {
-    return null;
-  }
-
+/**
+ * Get cached cryptocurrency data if available
+ */
+export async function getCachedData(supabase: any, request: CryptoRequest) {
+  const { coinId, days, currency, forceRefresh } = request;
+  
   try {
-    const { data: cachedData, error: cachedError } = await supabase
+    // If force refresh is requested, skip cache lookup
+    if (forceRefresh) {
+      return null;
+    }
+    
+    // Attempt to get data from cache table
+    const now = new Date();
+    const { data, error } = await supabase
       .from('crypto_data_cache')
-      .select('*')
+      .select('data, created_at, coin_id, days, currency')
       .eq('coin_id', coinId)
       .eq('days', days)
       .eq('currency', currency)
-      .order('updated_at', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
-
-    if (!cachedError && cachedData) {
-      const cacheAge = Date.now() - new Date(cachedData.updated_at).getTime();
-      
-      // Use shorter TTL for shorter timeframes
-      const maxCacheAge = days === '1' ? CACHE_TTL_SHORT : CACHE_TTL_STANDARD;
-      
-      if (cacheAge < maxCacheAge) {
-        console.log(`Using cached data from ${Math.round(cacheAge/1000)} seconds ago`);
-        return {
-          ...cachedData.data,
-          fromCache: true,
-          cacheTime: cachedData.updated_at,
-          fetchedAt: new Date().toISOString()
-        };
-      } else {
-        // Implement stale-while-revalidate pattern:
-        // Return stale data but mark it for refresh
-        console.log(`Cached data is stale (${Math.round(cacheAge/1000)} seconds old). Using while fetching fresh data.`);
-        return {
-          ...cachedData.data,
-          fromCache: true,
-          cacheTime: cachedData.updated_at,
-          needsRefresh: true,
-          fetchedAt: new Date().toISOString()
-        };
+    
+    // Check if we got data and if there was an error
+    if (error) {
+      // If error is that the table doesn't exist, we'll create it later
+      if (error.message.includes("relation") && error.message.includes("does not exist")) {
+        console.log("Cache table doesn't exist yet, will create after first fetch");
+        return null;
       }
+      
+      console.error("Error fetching from cache:", error);
+      return null;
     }
+    
+    // If no data found in cache
+    if (!data) {
+      return null;
+    }
+    
+    // Check if cache is fresh (within TTL)
+    const cacheTime = new Date(data.created_at);
+    const cacheAge = (now.getTime() - cacheTime.getTime()) / 1000; // in seconds
+    
+    const isFresh = cacheAge < CACHE_TTL;
+    const isStale = cacheAge >= CACHE_TTL && cacheAge < CACHE_STALE_TTL;
+    
+    // If cache is still usable
+    if (isFresh || isStale) {
+      const cachedData = data.data;
+      
+      return {
+        ...cachedData,
+        fromCache: true,
+        cacheTime: cacheTime.toISOString(),
+        needsRefresh: isStale,
+        fetchedAt: cacheTime.toISOString(),
+        dataSource: cachedData.dataSource || "cache"
+      };
+    }
+    
+    // Cache is too old
     return null;
-  } catch (cacheError) {
-    // Log but continue if cache retrieval fails
-    console.error("Error retrieving from cache:", cacheError);
+    
+  } catch (error) {
+    console.error("Error in getCachedData:", error);
     return null;
   }
 }
 
-export async function saveToCache(
-  supabase: any,
-  { coinId, days, currency }: CryptoRequest,
-  freshData: any
-) {
-  // Don't save mock data to cache
-  if (!freshData || freshData.isMockData) {
-    console.log("Not caching mock data or invalid data");
-    return false;
-  }
-
-  console.log("Saving fresh data to cache");
+/**
+ * Save cryptocurrency data to cache
+ */
+export async function saveToCache(supabase: any, request: CryptoRequest, data: any) {
+  const { coinId, days, currency } = request;
   
   try {
-    // Use upsert to handle both insert and update cases
-    const { error: upsertError } = await supabase
+    console.log("Saving fresh data to cache");
+    
+    // First, try to create the table if it doesn't exist
+    try {
+      await supabase.rpc('create_crypto_cache_if_not_exists');
+    } catch (tableError) {
+      // Table might already exist or we don't have permissions to create it
+      // We'll continue and try to insert anyway
+      console.log("Note: Unable to create table automatically if it doesn't exist");
+    }
+    
+    // Save the data to the cache table
+    const { data: insertedData, error } = await supabase
       .from('crypto_data_cache')
-      .upsert({
+      .insert({
         coin_id: coinId,
         days: days,
         currency: currency,
-        data: freshData,
-        data_source: freshData.dataSource,
-        updated_at: new Date().toISOString()
-      }, {
-        onConflict: 'coin_id,days,currency',
-        ignoreDuplicates: false
-      });
-
-    if (upsertError) {
-      console.error("Error saving to cache:", upsertError);
+        data: data,
+        created_at: new Date().toISOString()
+      })
+      .select();
+      
+    if (error) {
+      console.error("Error saving to cache:", error);
       return false;
     }
     
-    console.log("Successfully saved to cache");
     return true;
-  } catch (saveError) {
-    console.error("Exception during cache save:", saveError);
+  } catch (error) {
+    console.error("Error in saveToCache:", error);
     return false;
   }
 }
 
-export async function broadcastUpdate(
-  supabase: any,
-  { coinId, days, currency }: CryptoRequest,
-  freshData: any
-) {
+/**
+ * Broadcast cryptocurrency updates to all connected clients
+ */
+export async function broadcastUpdate(supabase: any, request: CryptoRequest, data: any) {
+  const { coinId, days, currency } = request;
+  const channelName = `crypto-${coinId}-${days}-${currency}`;
+  
   try {
-    const channel = 'crypto-' + coinId + '-' + days + '-' + currency;
-    const event = 'crypto-update';
-    console.log(`Broadcasting update to channel: ${channel}, event: ${event}`);
-    
-    // Enhanced broadcast payload with timestamp and isRealtime flag
-    const { error: broadcastError } = await supabase
-      .from('broadcast_messages')
+    // Broadcast update to the appropriate channel
+    const broadcast = await supabase
+      .from('realtime_broadcasts')
       .insert({
-        channel,
-        event,
+        channel: channelName,
+        event: 'crypto-update',
         payload: {
           coinId,
-          days, 
+          days,
           currency,
-          data: {
-            ...freshData,
-            isRealtime: true, // Explicitly mark as realtime
-            broadcastTimestamp: new Date().toISOString(),
-          },
+          data,
           updatedAt: new Date().toISOString()
         }
       });
     
-    if (broadcastError) {
-      console.error("Error broadcasting update:", broadcastError);
-      return false;
-    }
-    
-    console.log("Successfully broadcast update");
     return true;
-  } catch (broadcastError) {
-    console.error("Failed to broadcast update:", broadcastError);
+  } catch (error) {
+    console.error("Error broadcasting update:", error);
     return false;
   }
 }
 
+/**
+ * Clean up old cache entries
+ */
 export async function cleanupCache(supabase: any) {
   try {
-    await supabase.rpc('clean_crypto_cache');
-    console.log("Ran cache cleanup function");
-    return true;
-  } catch (cleanupError) {
-    console.error("Error cleaning cache:", cleanupError);
-    return false;
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - 1); // Remove entries older than 1 day
+    
+    const { error } = await supabase
+      .from('crypto_data_cache')
+      .delete()
+      .lt('created_at', cutoffDate.toISOString());
+    
+    if (error) {
+      console.error("Error cleaning up cache:", error);
+    }
+    
+  } catch (error) {
+    console.error("Error in cleanupCache:", error);
   }
 }

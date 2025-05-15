@@ -1,7 +1,8 @@
 
-// Follow this setup guide to integrate the Supabase Edge Functions with your Lovable project:
-// https://docs.lovable.dev/integrations/supabase
-
+/**
+ * Market Data Edge Function
+ * Fetches cryptocurrency market data from various sources
+ */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const CRYPTOCOMPARE_API_KEY = Deno.env.get('CRYPTOCOMPARE_API_KEY') || '';
