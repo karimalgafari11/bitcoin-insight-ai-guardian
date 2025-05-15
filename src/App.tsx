@@ -34,41 +34,41 @@ const queryClient = new QueryClient({
 const ProtectedRoute = () => {
   const { user, loading } = useAuth();
   
-  // Show nothing while checking authentication
+  // استخدام معالج أفضل للتحميل لتجنب الوميض
   if (loading) {
-    return null; // المكون الرئيسي سيعرض شاشة التحميل
+    return null; // سيتم التعامل مع حالة التحميل في مكون AuthProvider
   }
   
-  // Redirect to auth page if not logged in
+  // إعادة التوجيه إلى صفحة المصادقة إذا لم يكن المستخدم مسجل الدخول
   if (!user) {
-    return <Navigate to="/auth" />;
+    return <Navigate to="/auth" replace />;
   }
   
-  // If logged in, render the child routes
+  // إذا كان المستخدم مسجل الدخول، قم بعرض المسارات الفرعية
   return <Outlet />;
 };
 
-// Auth route - redirects to dashboard if already logged in
+// مسار المصادقة - إعادة التوجيه إلى لوحة التحكم إذا كان المستخدم مسجل الدخول بالفعل
 const AuthRoute = () => {
   const { user, loading } = useAuth();
   
   if (loading) {
-    return null; // المكون الرئيسي سيعرض شاشة التحميل
+    return null; // سيتم التعامل مع حالة التحميل في مكون AuthProvider
   }
   
   if (user) {
-    return <Navigate to="/" />;
+    return <Navigate to="/" replace />;
   }
   
   return <Auth />;
 };
 
-// App component with routing
+// مكون المسارات مع التوجيه
 const AppRoutes = () => (
   <Routes>
     <Route path="/auth" element={<AuthRoute />} />
     
-    {/* Protected routes */}
+    {/* المسارات المحمية */}
     <Route element={<ProtectedRoute />}>
       <Route path="/" element={<Dashboard />} />
       <Route path="/analysis" element={<Analysis />} />
@@ -85,7 +85,7 @@ const AppRoutes = () => (
   </Routes>
 );
 
-// Fix: Create QueryClient instance separately from component rendering
+// التطبيق الرئيسي
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <BrowserRouter>

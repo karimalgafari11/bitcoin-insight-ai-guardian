@@ -22,19 +22,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { session, user, loading } = useAuthState();
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [unconfirmedEmail, setUnconfirmedEmail] = useState("");
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   const handleSignUp = async (email: string, password: string, username: string) => {
     try {
+      setIsTransitioning(true);
       const result = await signUp(email, password, username);
       setUnconfirmedEmail(result.email);
       setShowConfirmDialog(true);
     } catch (error) {
       // Error is already handled in the service
+    } finally {
+      setIsTransitioning(false);
     }
   };
 
   const handleSignIn = async (email: string, password: string) => {
     try {
+      setIsTransitioning(true);
       await signIn(email, password);
     } catch (error: any) {
       if (error.message === "يجب تأكيد البريد الإلكتروني أولاً") {
@@ -42,6 +47,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setShowConfirmDialog(true);
       }
       throw error;
+    } finally {
+      setIsTransitioning(false);
     }
   };
 
@@ -49,7 +56,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await resendEmailConfirmation(email);
   };
   
-  if (loading) {
+  // عرض حالة التحميل عند تحميل المصادقة أو أثناء الانتقالات
+  if (loading || isTransitioning) {
     return <AuthLoadingState />;
   }
 
@@ -61,11 +69,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loading,
         signUp: handleSignUp,
         signIn: handleSignIn,
-        // Fix here: The signOut function from the service returns Promise<{ success: boolean }>,
-        // but the type definition expects Promise<void>. We need to adapt this to match.
         signOut: async () => {
-          await signOut();
-          // By not returning anything, this function now returns Promise<void> as expected
+          setIsTransitioning(true);
+          try {
+            await signOut();
+          } finally {
+            // حتى لو فشلت عملية الخروج، نريد إنهاء حالة الانتقال
+            setTimeout(() => setIsTransitioning(false), 300);
+          }
         },
         resendEmailConfirmation: handleResendEmailConfirmation,
       }}
