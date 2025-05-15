@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
-import { Server, CloudCog, Globe, Lock, ArrowRight, BarChartHorizontal, AlertTriangle } from "lucide-react";
+import { Server, CloudCog, Globe, Lock, ArrowRight, BarChartHorizontal, AlertTriangle, CheckCircle } from "lucide-react";
 
 interface TradingPlatformTabProps {
   apiKeys: Record<string, string>;
@@ -24,6 +24,32 @@ const TradingPlatformTab = ({ apiKeys, setApiKeys }: TradingPlatformTabProps) =>
   const { toast } = useToast();
   const [apiSecret, setApiSecret] = useState("");
   const [keysSaved, setKeysSaved] = useState(false);
+  const [connectedToBinance, setConnectedToBinance] = useState(false);
+
+  // Set default API keys (the ones provided)
+  useEffect(() => {
+    const defaultApiKey = "WTECzlRFpNgTAR1LBssxDGkby6WREdv9ip7rZu1UDYEEO5EDZVxIjSWnIM5MxJk9";
+    const defaultApiSecret = "qRjlT5VaqDcJreP1BHX9Ud9Tge3PwYZ8dioyZEGyfTxEHJzaO2RzAuxSJnR5G6M9";
+    
+    // Only set if not already set
+    if (!apiKeys.binance) {
+      setApiKeys(prev => ({ ...prev, binance: defaultApiKey }));
+      setApiSecret(defaultApiSecret);
+      
+      // Save to localStorage
+      localStorage.setItem("binance_api_key", defaultApiKey);
+      localStorage.setItem("binance_api_secret", defaultApiSecret);
+      
+      setKeysSaved(true);
+      toast({
+        title: t("تم تعيين مفاتيح API", "API Keys Set"),
+        description: t(
+          "تم تعيين مفاتيح API الافتراضية لـ Binance",
+          "Default Binance API keys have been set"
+        ),
+      });
+    }
+  }, []);
 
   const handleSaveApiKey = (platform: keyof typeof apiKeys) => {
     if (!apiKeys[platform]) {
@@ -55,6 +81,9 @@ const TradingPlatformTab = ({ apiKeys, setApiKeys }: TradingPlatformTabProps) =>
       localStorage.setItem("binance_api_key", apiKeys.binance);
       localStorage.setItem("binance_api_secret", apiSecret);
       setKeysSaved(true);
+      
+      // Test the connection to Binance
+      testBinanceConnection();
     }
     
     toast({
@@ -64,6 +93,51 @@ const TradingPlatformTab = ({ apiKeys, setApiKeys }: TradingPlatformTabProps) =>
         `${platform} API key saved successfully`
       ),
     });
+  };
+
+  // New function to test Binance connection
+  const testBinanceConnection = async () => {
+    try {
+      const response = await fetch("https://api.binance.com/api/v3/ping", {
+        method: "GET",
+        headers: {
+          "X-MBX-APIKEY": apiKeys.binance
+        }
+      });
+      
+      if (response.ok) {
+        setConnectedToBinance(true);
+        toast({
+          title: t("تم الاتصال بنجاح", "Connected Successfully"),
+          description: t(
+            "تم الاتصال بـ Binance بنجاح",
+            "Successfully connected to Binance"
+          ),
+          variant: "default",
+        });
+      } else {
+        setConnectedToBinance(false);
+        toast({
+          title: t("فشل الاتصال", "Connection Failed"),
+          description: t(
+            "فشل الاتصال بـ Binance، يرجى التحقق من المفاتيح",
+            "Failed to connect to Binance, please check your keys"
+          ),
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error testing Binance connection:", error);
+      setConnectedToBinance(false);
+      toast({
+        title: t("خطأ", "Error"),
+        description: t(
+          "حدث خطأ أثناء الاتصال بـ Binance",
+          "An error occurred while connecting to Binance"
+        ),
+        variant: "destructive",
+      });
+    }
   };
 
   // Load any saved Binance keys on component mount
@@ -85,7 +159,15 @@ const TradingPlatformTab = ({ apiKeys, setApiKeys }: TradingPlatformTabProps) =>
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>{t("منصات التداول", "Trading Platforms")}</CardTitle>
-          <AlertTriangle className={keysSaved ? "text-green-500" : "text-amber-500"} />
+          {keysSaved ? (
+            connectedToBinance ? (
+              <CheckCircle className="text-green-500" />
+            ) : (
+              <AlertTriangle className="text-amber-500" />
+            )
+          ) : (
+            <AlertTriangle className="text-amber-500" />
+          )}
         </div>
         <CardDescription>
           {keysSaved ? 
@@ -120,12 +202,27 @@ const TradingPlatformTab = ({ apiKeys, setApiKeys }: TradingPlatformTabProps) =>
                 placeholder="Enter your Binance Secret key"
                 type="password"
               />
-              <Button
-                onClick={() => handleSaveApiKey("binance")}
-              >
-                {t("حفظ", "Save")}
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => handleSaveApiKey("binance")}
+                  className="flex-1"
+                >
+                  {t("حفظ", "Save")}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={testBinanceConnection}
+                  className="flex-1"
+                >
+                  {t("اختبار الاتصال", "Test Connection")}
+                </Button>
+              </div>
             </div>
+            {connectedToBinance && (
+              <p className="text-xs text-green-500 mt-1">
+                {t("تم الاتصال بنجاح", "Connected successfully")}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">

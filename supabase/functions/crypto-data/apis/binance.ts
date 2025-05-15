@@ -22,7 +22,7 @@ interface BinanceKline {
 export async function fetchFromBinance(coinId: string, days: string, currency: string) {
   console.log(`Fetching from Binance: ${coinId}, days: ${days}, currency: ${currency}`);
 
-  // Map coinId to Binance symbol
+  // Map coinId to Binance symbol - FIXED the symbol format for Binance
   const symbol = mapCoinIdToSymbol(coinId, currency);
   
   // Get the appropriate interval and limit based on days
@@ -59,6 +59,7 @@ export async function fetchFromBinance(coinId: string, days: string, currency: s
 
 /**
  * Maps a coin ID to its corresponding Binance symbol
+ * FIXED: Using correct symbol format for Binance
  */
 function mapCoinIdToSymbol(coinId: string, currency: string): string {
   // Map common coin IDs to Binance symbols
@@ -78,8 +79,8 @@ function mapCoinIdToSymbol(coinId: string, currency: string): string {
   const coin = coinMap[coinId.toLowerCase()] || coinId.toUpperCase();
   const curr = currency.toUpperCase();
   
-  // For Binance, we need to format the symbol correctly without hyphens
-  return `${coin}${curr}`;
+  // FIXED: Correct symbol format for Binance (most pairs use BTCUSDT format, not BTCUSD)
+  return `${coin}${curr}T`;
 }
 
 /**
