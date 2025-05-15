@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 
@@ -84,6 +85,13 @@ export function setupRealtimeChannel(
             console.error(`Maximum reconnect attempts (${MAX_RECONNECT_ATTEMPTS}) reached for channel ${channelName}`);
             // Don't keep the failed channel in the active channels map
             activeChannels.delete(channelName);
+            
+            // Notify the user but don't interrupt their experience
+            toast({
+              title: "Connection issue",
+              description: "Unable to connect to real-time updates. Data will be refreshed manually.",
+              variant: "destructive",
+            });
           }
         } else if (status === 'SUBSCRIBED') {
           // Reset attempts on successful subscription

@@ -38,14 +38,31 @@ const CryptoStatusWrapper: React.FC<CryptoStatusWrapperProps> = ({
     if (onRefresh) {
       toast({
         title: t("جاري التحديث", "Refreshing data"),
-        description: t("نحاول جلب أحدث البيانات...", "Fetching latest data...")
+        description: t("نحاول جلب أحدث البيانات دون مغادرة الصفحة...", "Fetching latest data without leaving the page...")
       });
       onRefresh();
     }
   };
   
   if (loading) {
-    return <CryptoLoadingState />;
+    return (
+      <div className="relative">
+        <div className={loading ? "opacity-40" : ""}>
+          {children}
+        </div>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg flex flex-col items-center space-y-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <div className="text-center">
+              <p className="font-medium">{t("جاري التحديث", "Updating data")}</p>
+              <p className="text-muted-foreground text-sm">
+                {t("يتم تحديث البيانات دون مغادرة الصفحة...", "Refreshing data without leaving the page...")}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
   
   if (error) {
@@ -81,8 +98,8 @@ const CryptoStatusWrapper: React.FC<CryptoStatusWrapperProps> = ({
           <AlertTitle className="text-yellow-700 dark:text-yellow-400">{t("بيانات غير محدثة", "Stale Data")}</AlertTitle>
           <AlertDescription className="text-yellow-600 dark:text-yellow-300">
             {t(
-              "نعرض بيانات مخزنة مؤقتًا. انقر على تحديث للحصول على أحدث البيانات.",
-              "Displaying cached data. Click refresh to get the latest data."
+              "نعرض بيانات مخزنة مؤقتًا. انقر على تحديث للحصول على أحدث البيانات دون مغادرة الصفحة.",
+              "Displaying cached data. Click refresh to get the latest data without leaving the page."
             )}
             {onRefresh && (
               <Button 

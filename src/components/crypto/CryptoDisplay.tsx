@@ -29,7 +29,7 @@ const CryptoDisplay: React.FC<CryptoDisplayProps> = ({
   const { t } = useLanguage();
 
   return (
-    <div>
+    <div className="animate-fadeIn">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <CryptoPriceHeader
           name={data.metadata?.name || getSymbolName(selectedCoin)}

@@ -69,6 +69,7 @@ export function useCryptoData(
     setError(null);
 
     try {
+      // Use any cached data we have while fetching to provide a smooth experience
       const result = await fetchCryptoData(coinId, days, currency, force);
       
       // Only update state if component is still mounted
@@ -127,7 +128,7 @@ export function useCryptoData(
       if (!updatedData.fromCache) {
         toast({
           title: t("تحديث البيانات", "Data Update"),
-          description: t("تم تحديث بيانات العملة الرقمية", "Cryptocurrency data updated"),
+          description: t("تم تحديث بيانات العملة الرقمية دون مغادرة الصفحة", "Cryptocurrency data updated without leaving the page"),
         });
       }
     };
@@ -197,7 +198,7 @@ export function useCryptoData(
       setLastRefresh(new Date());
       toast({
         title: t("جاري التحديث", "Refreshing"),
-        description: t("يتم تحديث بيانات العملة الرقمية الآن", "Updating cryptocurrency data now"),
+        description: t("يتم تحديث بيانات العملة الرقمية دون مغادرة الصفحة", "Updating cryptocurrency data without leaving the page"),
       });
     }
   }, [fetchCryptoDataCallback, t]);
