@@ -19,7 +19,15 @@ import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 
-const queryClient = new QueryClient();
+// Create QueryClient outside of components to avoid recreation on renders
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 // Protected route wrapper
 const ProtectedRoute = () => {
@@ -76,10 +84,11 @@ const AppRoutes = () => (
   </Routes>
 );
 
+// Fix: Create QueryClient instance separately from component rendering
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <BrowserRouter>
+  <BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
         <LanguageProvider>
           <AuthProvider>
             <SidebarProvider>
@@ -89,9 +98,9 @@ const App = () => (
             </SidebarProvider>
           </AuthProvider>
         </LanguageProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </BrowserRouter>
 );
 
 export default App;
