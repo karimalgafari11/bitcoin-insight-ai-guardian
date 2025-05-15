@@ -4,8 +4,6 @@
  * Fetches cryptocurrency market data from various sources
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createHash, HmacSha256 } from "https://deno.land/std@0.167.0/hash/sha256.ts";
-import { encodeToString } from "https://deno.land/std@0.167.0/encoding/hex.ts";
 
 // Load API keys from localStorage when available in client (not available in edge functions)
 const BINANCE_API_KEY = 'UklcmVRAsY7KBBbp2FfqHVuequcGBOhAKb5tRMxg3vQEPa77QrNX8GvhTnqtIT1x';

@@ -1,6 +1,5 @@
 
-import { createHash, HmacSha256 } from "https://deno.land/std@0.167.0/hash/sha256.ts";
-import { encodeToString } from "https://deno.land/std@0.167.0/encoding/hex.ts";
+import { createHash } from "https://deno.land/std@0.208.0/crypto/mod.ts";
 
 interface BinanceKline {
   openTime: number;
