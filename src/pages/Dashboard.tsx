@@ -13,7 +13,15 @@ import TimeframeSelector from "@/components/TimeframeSelector";
 
 const Dashboard = () => {
   const { t } = useLanguage();
-  const [currentTimeframe, setCurrentTimeframe] = useState("1d");
+  const [currentTimeframe, setCurrentTimeframe] = useState<"4h" | "1d" | "1w" | "1m">("1d");
+
+  // Map UI timeframes to API days parameter
+  const timeframeToDays = {
+    "4h": "1",
+    "1d": "1",
+    "1w": "7",
+    "1m": "30",
+  };
 
   const handleTimeframeChange = (timeframe: "4h" | "1d" | "1w" | "1m") => {
     setCurrentTimeframe(timeframe);
@@ -48,7 +56,7 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <CryptoDataDisplay />
+          <CryptoDataDisplay defaultCoin="bitcoin" />
 
           <div className="mb-6">
             <LatestNews />

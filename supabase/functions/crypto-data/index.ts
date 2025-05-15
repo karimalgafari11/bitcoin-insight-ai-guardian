@@ -110,11 +110,11 @@ serve(async (req) => {
       );
     }
     
-    const coinId = idLookupData.data[0].id;
+    const cmcCoinId = idLookupData.data[0].id;
     
     // Get historical OHLCV data from CMC
     const count = days === '1' ? 24 : days === '7' ? 42 : days === '30' ? 30 : 90;
-    const historicalUrl = `https://pro-api.coinmarketcap.com/v2/cryptocurrency/ohlcv/historical?id=${coinId}&time_period=${interval}&count=${count}&convert=${currency.toUpperCase()}`;
+    const historicalUrl = `https://pro-api.coinmarketcap.com/v2/cryptocurrency/ohlcv/historical?id=${cmcCoinId}&time_period=${interval}&count=${count}&convert=${currency.toUpperCase()}`;
     console.log(`Making historical request to: ${historicalUrl}`);
     
     const historicalResponse = await fetch(historicalUrl, {

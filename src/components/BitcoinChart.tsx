@@ -10,24 +10,10 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-
-// Sample data - in a real app, this would come from an API
-const generateDemoData = () => {
-  const data = [];
-  let price = 50000;
-  
-  for (let i = 0; i < 100; i++) {
-    const change = Math.random() > 0.5 ? 1 : -1;
-    price = price + (Math.random() * 500) * change;
-    
-    data.push({
-      time: new Date(new Date().getTime() - (100 - i) * 3600000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      price,
-    });
-  }
-  
-  return data;
-};
+import { useCryptoData } from "@/hooks/useCryptoData";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Loader2 } from "lucide-react";
+import { format } from "date-fns";
 
 type BitcoinChartProps = {
   timeframe: string;
@@ -35,17 +21,30 @@ type BitcoinChartProps = {
 };
 
 const BitcoinChart = ({ timeframe, className }: BitcoinChartProps) => {
-  const [data, setData] = useState<any[]>([]);
   const [chartHeight, setChartHeight] = useState(400);
   const containerRef = useRef<HTMLDivElement>(null);
   const [percentChange, setPercentChange] = useState(0);
   
+  // Convert timeframe to days for API
+  const getDaysFromTimeframe = (timeframe: string): string => {
+    switch (timeframe) {
+      case "4h": return "1";
+      case "1d": return "1";
+      case "1w": return "7";
+      case "1m": return "30";
+      default: return "7";
+    }
+  };
+  
+  const days = getDaysFromTimeframe(timeframe);
+  const { data, loading, error } = useCryptoData("bitcoin", days);
+  
   useEffect(() => {
-    setData(generateDemoData());
+    if (!data || !data.prices || data.prices.length < 2) return;
     
-    // Calculate percent change
-    const firstPrice = data[0]?.price;
-    const lastPrice = data[data.length - 1]?.price;
+    // Calculate percent change from first to last price
+    const firstPrice = data.prices[0][1];
+    const lastPrice = data.prices[data.prices.length - 1][1];
     
     if (firstPrice && lastPrice) {
       const change = ((lastPrice - firstPrice) / firstPrice) * 100;
@@ -64,13 +63,55 @@ const BitcoinChart = ({ timeframe, className }: BitcoinChartProps) => {
     window.addEventListener("resize", updateHeight);
     
     return () => window.removeEventListener("resize", updateHeight);
-  }, [timeframe]);
+  }, [data]);
   
   const priceFormatter = (value: number) => {
     return `$${value.toLocaleString()}`;
   };
   
+  const formatData = (prices: [number, number][]) => {
+    if (!prices) return [];
+    
+    return prices.map(([timestamp, price]) => ({
+      time: format(new Date(timestamp), 'HH:mm'),
+      date: new Date(timestamp),
+      price,
+    }));
+  };
+  
   const isPositiveChange = percentChange >= 0;
+  
+  if (loading) {
+    return (
+      <Card className={`${className} overflow-hidden border-zinc-800`}>
+        <div className="flex items-center justify-between p-4 border-b border-zinc-800">
+          <div className="font-medium text-lg">BTC/USD {timeframe}</div>
+          <div className="flex items-center">
+            <Skeleton className="h-5 w-16" />
+          </div>
+        </div>
+        <CardContent className="p-6 flex items-center justify-center" style={{ height: chartHeight }}>
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  if (error || !data || !data.prices || data.prices.length === 0) {
+    return (
+      <Card className={`${className} overflow-hidden border-zinc-800`}>
+        <div className="flex items-center justify-between p-4 border-b border-zinc-800">
+          <div className="font-medium text-lg">BTC/USD {timeframe}</div>
+          <div className="flex items-center text-red-500">Error loading data</div>
+        </div>
+        <CardContent className="p-6 flex items-center justify-center" style={{ height: chartHeight }}>
+          <p className="text-muted-foreground">Failed to load chart data</p>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  const chartData = formatData(data.prices);
   
   return (
     <Card className={`${className} overflow-hidden border-zinc-800 bg-chart-bg`}>
@@ -83,7 +124,7 @@ const BitcoinChart = ({ timeframe, className }: BitcoinChartProps) => {
       
       <CardContent className="p-0" ref={containerRef}>
         <ResponsiveContainer width="100%" height={chartHeight}>
-          <AreaChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+          <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor={isPositiveChange ? "#0ecb81" : "#f6465d"} stopOpacity={0.3} />
@@ -97,7 +138,7 @@ const BitcoinChart = ({ timeframe, className }: BitcoinChartProps) => {
               axisLine={{ stroke: '#333' }} 
             />
             <YAxis 
-              domain={['dataMin - 1000', 'dataMax + 1000']} 
+              domain={['auto', 'auto']} 
               tickFormatter={priceFormatter} 
               tick={{ fill: '#999' }} 
               axisLine={{ stroke: '#333' }} 
@@ -106,6 +147,7 @@ const BitcoinChart = ({ timeframe, className }: BitcoinChartProps) => {
               contentStyle={{ backgroundColor: '#1E1E1E', borderColor: '#333' }} 
               labelStyle={{ color: '#CCC' }}
               formatter={(value: any) => [`$${Number(value).toLocaleString()}`, 'السعر']}
+              labelFormatter={(label) => format(new Date(label), 'PPpp')}
             />
             <Area 
               type="monotone" 
