@@ -63,7 +63,9 @@ const Settings = () => {
           setDarkMode(data.dark_mode);
           
           // Properly handle the notification_preferences value with type safety
-          const notificationPrefs = data.notification_preferences as NotificationPreferences | null;
+          // First cast to unknown, then to our specific type
+          const notifPref = data.notification_preferences as unknown;
+          const notificationPrefs = notifPref as NotificationPreferences | null;
           setNotificationsEnabled(notificationPrefs?.enabled ?? true);
         }
       } catch (error) {
@@ -114,7 +116,7 @@ const Settings = () => {
       setNotificationsEnabled(checked);
       
       // Create a proper notification preferences object
-      const notificationPreferences: NotificationPreferences = {
+      const notificationPreferences = {
         enabled: checked,
         price_alerts: checked,
         market_updates: checked,
@@ -124,7 +126,8 @@ const Settings = () => {
       const { error } = await supabase
         .from('user_settings')
         .update({
-          notification_preferences: notificationPreferences
+          // Cast to unknown first to handle the Json type requirement
+          notification_preferences: notificationPreferences as unknown as any
         })
         .eq('user_id', user.id);
         
