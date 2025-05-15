@@ -1,9 +1,6 @@
 
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import { Toaster } from '@/components/ui/toaster';
-import { LanguageProvider } from './contexts/LanguageContext';
-import { AuthProvider } from './contexts/AuthContext';
-import { WatchlistProvider } from './contexts/WatchlistContext';
 import { SidebarProvider } from '@/components/ui/sidebar';
 
 // Import your pages
@@ -22,31 +19,23 @@ import TechnicalPatterns from './pages/TechnicalPatterns';
 
 function App() {
   return (
-    <LanguageProvider>
-      <Router>
-        <AuthProvider>
-          <WatchlistProvider>
-            <SidebarProvider>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/trading-journal" element={<TradingJournal />} />
-                <Route path="/analysis" element={<Analysis />} />
-                <Route path="/news-sentiment" element={<NewsSentiment />} />
-                <Route path="/risk-calculator" element={<RiskCalculator />} />
-                <Route path="/education" element={<Education />} />
-                <Route path="/candlestick-analysis" element={<CandlestickAnalysis />} />
-                <Route path="/technical-patterns" element={<TechnicalPatterns />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-              <Toaster />
-            </SidebarProvider>
-          </WatchlistProvider>
-        </AuthProvider>
-      </Router>
-    </LanguageProvider>
+    <SidebarProvider>
+      <Routes>
+        <Route path="/" element={<Index />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/auth" element={<Auth />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="/trading-journal" element={<TradingJournal />} />
+        <Route path="/analysis" element={<Analysis />} />
+        <Route path="/news-sentiment" element={<NewsSentiment />} />
+        <Route path="/risk-calculator" element={<RiskCalculator />} />
+        <Route path="/education" element={<Education />} />
+        <Route path="/candlestick-analysis" element={<CandlestickAnalysis />} />
+        <Route path="/technical-patterns" element={<TechnicalPatterns />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+      <Toaster />
+    </SidebarProvider>
   );
 }
 
