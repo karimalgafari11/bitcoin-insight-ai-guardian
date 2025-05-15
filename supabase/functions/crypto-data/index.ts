@@ -14,39 +14,48 @@ serve(async (req) => {
   }
 
   try {
-    // Create a Supabase client with the Admin key
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
+    // Parse request data
+    const { coinId = "bitcoin", days = "7", currency = "usd" } = await req.json();
+    
+    console.log(`Fetching data for: ${coinId}, days: ${days}, currency: ${currency}`);
+    
     // Get the Coingecko API key from Supabase secrets
     const coingeckoApiKey = Deno.env.get("Coingecko_api_key") || "";
     
     if (!coingeckoApiKey) {
+      console.error("Coingecko API key not found");
       return new Response(
         JSON.stringify({ error: "Coingecko API key not found" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
       );
     }
 
-    // Parse request parameters
-    const url = new URL(req.url);
-    const coinId = url.searchParams.get("coinId") || "bitcoin";
-    const currency = url.searchParams.get("currency") || "usd";
-    const days = url.searchParams.get("days") || "7";
-
     // Fetch market data from Coingecko
     const apiUrl = `https://pro-api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=${currency}&days=${days}&x_cg_pro_api_key=${coingeckoApiKey}`;
     
+    console.log(`Making request to: ${apiUrl}`);
+    
     const response = await fetch(apiUrl);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Coingecko API error: ${response.status} - ${errorText}`);
+      return new Response(
+        JSON.stringify({ error: `Coingecko API error: ${response.status}`, details: errorText }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: response.status }
+      );
+    }
+    
     const data = await response.json();
-
+    console.log("Received data from Coingecko:", Object.keys(data));
+    
     // Return the data
     return new Response(
       JSON.stringify(data),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
+    console.error("Error in crypto-data function:", error.message);
     return new Response(
       JSON.stringify({ error: error.message }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
