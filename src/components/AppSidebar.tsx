@@ -131,5 +131,4 @@ export function AppSidebar() {
   );
 }
 
-// استخدم export default بالإضافة إلى named export للتوافق مع جميع طرق الاستيراد المستخدمة في الصفحات
 export default AppSidebar;

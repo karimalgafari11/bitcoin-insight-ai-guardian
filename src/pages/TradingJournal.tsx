@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Filter, FileDown, BarChart4 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { AppSidebar } from "@/components/AppSidebar"; // Fixed import
+import { AppSidebar } from "@/components/AppSidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
