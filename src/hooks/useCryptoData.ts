@@ -17,6 +17,12 @@ export interface CryptoMarketData {
     percent_change_7d: number;
     last_updated: string;
   };
+  isRealtime?: boolean;
+  isMockData?: boolean;
+  dataSource?: string;
+  fromCache?: boolean;
+  fetchedAt?: string;
+  cacheTime?: string;
 }
 
 export function useCryptoData(coinId: string = 'bitcoin', days: string = '7', currency: string = 'usd') {
@@ -24,6 +30,8 @@ export function useCryptoData(coinId: string = 'bitcoin', days: string = '7', cu
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isRealtime, setIsRealtime] = useState(false);
+  const [dataSource, setDataSource] = useState<string>("loading");
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   
   // Use a ref to store the fetch timer
   const fetchTimerRef = useRef<number | null>(null);
@@ -61,12 +69,13 @@ export function useCryptoData(coinId: string = 'bitcoin', days: string = '7', cu
       
       console.log(`Fetching data for ${coinId}, days: ${days}, currency: ${currency}`);
       
-      const { data: responseData, error: responseError } = await supabase.functions.invoke('crypto-data', {
+      // Use the new crypto-cache function instead of direct crypto-data function
+      const { data: responseData, error: responseError } = await supabase.functions.invoke('crypto-cache', {
         body: {
           coinId,
           days,
           currency,
-          realtime: true
+          forceRefresh: force
         }
       });
 
@@ -89,6 +98,8 @@ export function useCryptoData(coinId: string = 'bitcoin', days: string = '7', cu
 
       setData(responseData as CryptoMarketData);
       setIsRealtime(responseData.isRealtime || false);
+      setDataSource(responseData.dataSource || "unknown");
+      setLastUpdated(responseData.fetchedAt || new Date().toISOString());
       
       // Update the last fetch time
       lastFetchRef.current = now;
@@ -113,20 +124,35 @@ export function useCryptoData(coinId: string = 'bitcoin', days: string = '7', cu
     }
 
     // Setup a channel for real-time updates
+    const channelName = `crypto-${coinId}-${days}-${currency}`;
+    console.log(`Setting up realtime channel: ${channelName}`);
+    
     const channel = supabase
-      .channel(`crypto-${coinId}-${days}-${currency}`)
+      .channel(channelName)
       .on('broadcast', { event: 'crypto-update' }, (payload) => {
         if (payload.payload && 
             payload.payload.coinId === coinId && 
             payload.payload.days === days && 
             payload.payload.currency === currency) {
           console.log('Received real-time crypto update:', payload.payload);
-          setData(payload.payload.data);
-          setIsRealtime(true);
+          
+          const updatedData = payload.payload.data;
+          setData(updatedData);
+          setIsRealtime(updatedData.isRealtime || false);
+          setDataSource(updatedData.dataSource || "realtime-update");
+          setLastUpdated(payload.payload.updatedAt || new Date().toISOString());
           lastFetchRef.current = Date.now();
+          
+          // Show a toast notification for the update
+          toast({
+            title: "تحديث البيانات",
+            description: "تم تحديث بيانات العملة الرقمية",
+          });
         }
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log(`Realtime subscription status: ${status}`);
+      });
 
     realtimeChannelRef.current = channel;
     return channel;
@@ -175,5 +201,13 @@ export function useCryptoData(coinId: string = 'bitcoin', days: string = '7', cu
     });
   }, [fetchCryptoData]);
 
-  return { data, loading, error, refreshData, isRealtime };
+  return { 
+    data, 
+    loading, 
+    error, 
+    refreshData, 
+    isRealtime, 
+    dataSource,
+    lastUpdated
+  };
 }

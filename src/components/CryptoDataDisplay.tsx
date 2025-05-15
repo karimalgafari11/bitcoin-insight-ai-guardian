@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useCryptoData } from '@/hooks/useCryptoData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Loader2, RefreshCw, Wifi, WifiOff } from 'lucide-react';
+import { Loader2, RefreshCw, Wifi, WifiOff, Database, CloudOff } from 'lucide-react';
 import { getSymbolName, formatData } from '@/utils/cryptoUtils';
 import { Button } from '@/components/ui/button';
 import CryptoSelector from './crypto/CryptoSelector';
@@ -13,6 +13,7 @@ import CryptoPriceChart from './crypto/CryptoPriceChart';
 import CryptoDisclaimer from './crypto/CryptoDisclaimer';
 import { toast } from '@/components/ui/use-toast';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface CryptoDataDisplayProps {
   defaultCoin?: string;
@@ -24,7 +25,15 @@ const CryptoDataDisplay: React.FC<CryptoDataDisplayProps> = ({ defaultCoin = 'bi
   const [timeframe, setTimeframe] = useState('7');
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   
-  const { data, loading, error, refreshData, isRealtime } = useCryptoData(selectedCoin, timeframe);
+  const { 
+    data, 
+    loading, 
+    error, 
+    refreshData, 
+    isRealtime,
+    dataSource,
+    lastUpdated 
+  } = useCryptoData(selectedCoin, timeframe);
 
   const handleCoinChange = (value: string) => {
     setSelectedCoin(value);
@@ -43,22 +52,123 @@ const CryptoDataDisplay: React.FC<CryptoDataDisplayProps> = ({ defaultCoin = 'bi
     });
   };
 
+  // Format the data age in a human-readable format
+  const getDataAge = () => {
+    if (!lastUpdated) return t('غير معروف', 'Unknown');
+    
+    const now = new Date();
+    const updated = new Date(lastUpdated);
+    const diffMs = now.getTime() - updated.getTime();
+    const diffSecs = Math.floor(diffMs / 1000);
+    const diffMins = Math.floor(diffSecs / 60);
+    const diffHours = Math.floor(diffMins / 60);
+    
+    if (diffSecs < 60) return t(`منذ ${diffSecs} ثانية`, `${diffSecs} seconds ago`);
+    if (diffMins < 60) return t(`منذ ${diffMins} دقيقة`, `${diffMins} minutes ago`);
+    if (diffHours < 24) return t(`منذ ${diffHours} ساعة`, `${diffHours} hours ago`);
+    return t('منذ أكثر من يوم', 'More than a day ago');
+  };
+
+  // Get a badge for the data source
+  const getDataSourceBadge = () => {
+    if (loading) return null;
+    
+    if (!data) {
+      return (
+        <Badge variant="outline" className="bg-red-500/10 text-red-500 border-red-500">
+          <CloudOff className="w-3 h-3 mr-1" />
+          {t('لا توجد بيانات', 'No Data')}
+        </Badge>
+      );
+    }
+    
+    if (data.fromCache) {
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger>
+              <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500">
+                <Database className="w-3 h-3 mr-1" />
+                {t('من الذاكرة المؤقتة', 'From Cache')}
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{t('تم تحديث الذاكرة المؤقتة', 'Cache was updated')}: {
+                data.cacheTime ? new Date(data.cacheTime).toLocaleTimeString() : t('غير معروف', 'Unknown')
+              }</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    }
+    
+    if (isRealtime) {
+      return (
+        <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500">
+          <Wifi className="w-3 h-3 mr-1" />
+          {t('بيانات مباشرة', 'Live Data')}
+        </Badge>
+      );
+    }
+    
+    return (
+      <Badge variant="outline" className="bg-orange-500/10 text-orange-500 border-orange-500">
+        <WifiOff className="w-3 h-3 mr-1" />
+        {t('بيانات غير مباشرة', 'Non-Live Data')}
+      </Badge>
+    );
+  };
+
+  // Get a badge for the data source provider
+  const getSourceProviderBadge = () => {
+    if (loading || !dataSource) return null;
+    
+    let bgColor = "bg-gray-500/10";
+    let textColor = "text-gray-500";
+    let borderColor = "border-gray-500";
+    let label = t('غير معروف', 'Unknown');
+    
+    switch (dataSource.toLowerCase()) {
+      case 'coinmarketcap':
+        bgColor = "bg-blue-500/10";
+        textColor = "text-blue-500";
+        borderColor = "border-blue-500";
+        label = "CoinMarketCap";
+        break;
+      case 'coingecko':
+        bgColor = "bg-green-500/10";
+        textColor = "text-green-500";
+        borderColor = "border-green-500";
+        label = "CoinGecko";
+        break;
+      case 'publicapi':
+        bgColor = "bg-purple-500/10";
+        textColor = "text-purple-500";
+        borderColor = "border-purple-500";
+        label = "CoinCap";
+        break;
+      case 'mock':
+        bgColor = "bg-yellow-500/10";
+        textColor = "text-yellow-500";
+        borderColor = "border-yellow-500";
+        label = t('بيانات تجريبية', 'Mock Data');
+        break;
+    }
+    
+    return (
+      <Badge variant="outline" className={`${bgColor} ${textColor} ${borderColor}`}>
+        {label}
+      </Badge>
+    );
+  };
+
   return (
     <Card className="w-full mb-6">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <div className="flex items-center gap-2">
           <CardTitle>{t('بيانات العملة الرقمية', 'Cryptocurrency Data')}</CardTitle>
-          {isRealtime ? (
-            <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500">
-              <Wifi className="w-3 h-3 mr-1" />
-              {t('بيانات مباشرة', 'Live Data')}
-            </Badge>
-          ) : (
-            <Badge variant="outline" className="bg-orange-500/10 text-orange-500 border-orange-500">
-              <WifiOff className="w-3 h-3 mr-1" />
-              {t('بيانات غير مباشرة', 'Non-Live Data')}
-            </Badge>
-          )}
+          {getDataSourceBadge()}
+          {getSourceProviderBadge()}
         </div>
         <div className="flex items-center gap-2">
           <Button 
@@ -111,14 +221,24 @@ const CryptoDataDisplay: React.FC<CryptoDataDisplayProps> = ({ defaultCoin = 'bi
             
             <CryptoPriceChart priceData={formatData(data.prices)} />
             
-            <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
-              <div>
-                {isRealtime ? 
-                  t('البيانات محدثة بشكل مباشر', 'Data is updated in real-time') : 
-                  t('البيانات قد لا تكون محدثة', 'Data may not be current')}
+            <div className="mt-4 flex flex-wrap items-center justify-between text-xs text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <span>{t('مصدر البيانات', 'Data source')}:</span>
+                {dataSource === 'mock' ? (
+                  <span className="text-yellow-500">
+                    {t('بيانات تجريبية', 'Mock data')}
+                  </span>
+                ) : (
+                  <span className={isRealtime ? 'text-green-500' : 'text-orange-500'}>
+                    {dataSource} {data.fromCache ? t('(من الذاكرة المؤقتة)', '(from cache)') : ''}
+                  </span>
+                )}
               </div>
               <div>
-                {t('آخر تحديث', 'Last refresh')}: {lastRefresh.toLocaleTimeString()}
+                {t('تم التحديث', 'Updated')}: {getDataAge()}
+              </div>
+              <div>
+                {t('آخر تحديث محلي', 'Last local refresh')}: {lastRefresh.toLocaleTimeString()}
               </div>
             </div>
             

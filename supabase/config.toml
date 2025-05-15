@@ -1,2 +1,12 @@
 
 project_id = "rldsrafveotztbnqgmot"
+
+[functions.crypto-data]
+verify_jwt = false
+
+[functions.crypto-cache]
+verify_jwt = false
+
+[functions.crypto-data.schedule]
+cron = "*/5 * * * *" # Run every 5 minutes
+

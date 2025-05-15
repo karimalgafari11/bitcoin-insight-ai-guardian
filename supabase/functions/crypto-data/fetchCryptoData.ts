@@ -1,4 +1,3 @@
-
 import { corsHeaders } from "./cors.ts";
 import { coinSymbolMap, intervalMap } from "./coinSymbolMap.ts";
 import { formatHistoricalData } from "./formatData.ts";
@@ -8,17 +7,20 @@ import { generateMockData } from "./mockData.ts";
  * Fetches cryptocurrency data from CoinMarketCap API
  */
 export async function fetchCryptoData(coinId: string, days: string, currency: string) {
-  // Get the CoinMarketCap API key from Supabase secrets
-  const coinmarketcapApiKey = Deno.env.get("Coinmarketcup_api_key") || "";
-  const coingeckoApiKey = Deno.env.get("Coingecko_api_key") || "";
+  // Get the API keys with correct spelling
+  const coinMarketCapApiKey = Deno.env.get("CoinMarketCap_api_key") || Deno.env.get("Coinmarketcup_api_key") || "";
+  const coinGeckoApiKey = Deno.env.get("CoinGecko_api_key") || Deno.env.get("Coingecko_api_key") || "";
+  
+  console.log("Using API keys - CoinMarketCap available:", !!coinMarketCapApiKey, "CoinGecko available:", !!coinGeckoApiKey);
   
   // Try to fetch data from multiple sources
   try {
     // First try CoinMarketCap if we have an API key
-    if (coinmarketcapApiKey) {
+    if (coinMarketCapApiKey) {
       try {
         console.log("Attempting to fetch from CoinMarketCap");
-        const data = await fetchFromCoinMarketCap(coinId, days, currency, coinmarketcapApiKey);
+        const data = await fetchFromCoinMarketCap(coinId, days, currency, coinMarketCapApiKey);
+        console.log("Successfully fetched data from CoinMarketCap!");
         return {
           ...data,
           isMockData: false,
@@ -33,7 +35,8 @@ export async function fetchCryptoData(coinId: string, days: string, currency: st
     // Next try CoinGecko
     try {
       console.log("Attempting to fetch from CoinGecko");
-      const data = await fetchFromCoinGecko(coinId, days, currency, coingeckoApiKey);
+      const data = await fetchFromCoinGecko(coinId, days, currency, coinGeckoApiKey);
+      console.log("Successfully fetched data from CoinGecko!");
       return {
         ...data,
         isMockData: false,
@@ -48,6 +51,7 @@ export async function fetchCryptoData(coinId: string, days: string, currency: st
     try {
       console.log("Attempting to fetch from public API");
       const data = await fetchFromPublicApi(coinId, days, currency);
+      console.log("Successfully fetched data from public API!");
       return {
         ...data,
         isMockData: false,
@@ -64,7 +68,8 @@ export async function fetchCryptoData(coinId: string, days: string, currency: st
     return {
       ...mockData,
       isMockData: true,
-      dataSource: "mock"
+      dataSource: "mock",
+      fetchedAt: new Date().toISOString()
     };
   } catch (finalError) {
     console.error("All fetch attempts failed:", finalError.message);
@@ -74,7 +79,8 @@ export async function fetchCryptoData(coinId: string, days: string, currency: st
       ...mockData,
       isMockData: true,
       dataSource: "mock",
-      error: finalError.message
+      error: finalError.message,
+      fetchedAt: new Date().toISOString()
     };
   }
 }
@@ -187,56 +193,65 @@ async function fetchFromCoinGecko(coinId: string, days: string, currency: string
   // Map coin IDs to CoinGecko format if needed
   const geckoId = mapToGeckoId(coinId);
   
-  // Build base URL
-  let pricesUrl = `https://api.coingecko.com/api/v3/coins/${geckoId}/market_chart?vs_currency=${currency}&days=${days}`;
-  
-  // Add API key if available for higher rate limits
-  if (apiKey) {
-    pricesUrl += `&x_cg_pro_api_key=${apiKey}`;
+  try {
+    // Build base URL
+    let pricesUrl = `https://api.coingecko.com/api/v3/coins/${geckoId}/market_chart?vs_currency=${currency}&days=${days}`;
+    
+    // Add API key if available for higher rate limits
+    if (apiKey) {
+      pricesUrl += `&x_cg_pro_api_key=${apiKey}`;
+    }
+    
+    console.log(`Fetching from CoinGecko: ${pricesUrl}`);
+    
+    const pricesResponse = await fetch(pricesUrl);
+    
+    if (!pricesResponse.ok) {
+      const errorText = await pricesResponse.text();
+      console.error(`CoinGecko Market Chart API error: ${pricesResponse.status} - ${errorText}`);
+      throw new Error(`CoinGecko API error: ${pricesResponse.status}`);
+    }
+    
+    const pricesData = await pricesResponse.json();
+    
+    // Get additional metadata
+    let infoUrl = `https://api.coingecko.com/api/v3/coins/${geckoId}?localization=false&tickers=false&community_data=false&developer_data=false`;
+    
+    // Add API key if available
+    if (apiKey) {
+      infoUrl += `&x_cg_pro_api_key=${apiKey}`;
+    }
+    
+    const infoResponse = await fetch(infoUrl);
+    
+    if (!infoResponse.ok) {
+      const errorText = await infoResponse.text();
+      console.error(`CoinGecko Info API error: ${infoResponse.status} - ${errorText}`);
+      throw new Error(`CoinGecko Info API error: ${infoResponse.status}`);
+    }
+    
+    const coinInfo = await infoResponse.json();
+    
+    // Format data to match our expected structure
+    return {
+      prices: pricesData.prices,
+      market_caps: pricesData.market_caps,
+      total_volumes: pricesData.total_volumes,
+      metadata: {
+        name: coinInfo.name,
+        symbol: coinInfo.symbol.toUpperCase(),
+        current_price: coinInfo.market_data.current_price[currency],
+        market_cap: coinInfo.market_data.market_cap[currency],
+        volume_24h: coinInfo.market_data.total_volume[currency],
+        percent_change_24h: coinInfo.market_data.price_change_percentage_24h,
+        percent_change_7d: coinInfo.market_data.price_change_percentage_7d,
+        last_updated: coinInfo.market_data.last_updated,
+      },
+    };
+  } catch (error) {
+    console.error("Detailed CoinGecko fetch error:", error);
+    throw error;
   }
-  
-  console.log(`Fetching from CoinGecko: ${pricesUrl}`);
-  
-  const pricesResponse = await fetch(pricesUrl);
-  
-  if (!pricesResponse.ok) {
-    throw new Error(`CoinGecko API error: ${pricesResponse.status}`);
-  }
-  
-  const pricesData = await pricesResponse.json();
-  
-  // Get additional metadata
-  let infoUrl = `https://api.coingecko.com/api/v3/coins/${geckoId}?localization=false&tickers=false&community_data=false&developer_data=false`;
-  
-  // Add API key if available
-  if (apiKey) {
-    infoUrl += `&x_cg_pro_api_key=${apiKey}`;
-  }
-  
-  const infoResponse = await fetch(infoUrl);
-  
-  if (!infoResponse.ok) {
-    throw new Error(`CoinGecko Info API error: ${infoResponse.status}`);
-  }
-  
-  const coinInfo = await infoResponse.json();
-  
-  // Format data to match our expected structure
-  return {
-    prices: pricesData.prices,
-    market_caps: pricesData.market_caps,
-    total_volumes: pricesData.total_volumes,
-    metadata: {
-      name: coinInfo.name,
-      symbol: coinInfo.symbol.toUpperCase(),
-      current_price: coinInfo.market_data.current_price[currency],
-      market_cap: coinInfo.market_data.market_cap[currency],
-      volume_24h: coinInfo.market_data.total_volume[currency],
-      percent_change_24h: coinInfo.market_data.price_change_percentage_24h,
-      percent_change_7d: coinInfo.market_data.price_change_percentage_7d,
-      last_updated: coinInfo.market_data.last_updated,
-    },
-  };
 }
 
 /**
