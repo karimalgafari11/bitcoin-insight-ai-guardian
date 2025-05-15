@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useCryptoData } from '@/hooks/useCryptoData';
+import { useCryptoData } from '@/hooks/crypto'; // Updated import
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { RefreshCw, Star } from 'lucide-react';
