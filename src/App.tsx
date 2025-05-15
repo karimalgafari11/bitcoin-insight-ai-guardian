@@ -22,9 +22,9 @@ import TechnicalPatterns from './pages/TechnicalPatterns';
 function App() {
   return (
     <LanguageProvider>
-      <AuthProvider>
-        <WatchlistProvider>
-          <Router>
+      <Router>
+        <AuthProvider>
+          <WatchlistProvider>
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/dashboard" element={<Dashboard />} />
@@ -40,9 +40,9 @@ function App() {
               <Route path="*" element={<NotFound />} />
             </Routes>
             <Toaster />
-          </Router>
-        </WatchlistProvider>
-      </AuthProvider>
+          </WatchlistProvider>
+        </AuthProvider>
+      </Router>
     </LanguageProvider>
   );
 }

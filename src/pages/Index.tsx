@@ -1,11 +1,28 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import React from "react";
+import CryptoDataDisplay from "@/components/CryptoDataDisplay";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const Index = () => {
+  const { t } = useLanguage();
+  
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
+    <div className="container mx-auto py-6 px-4 max-w-6xl">
+      <h1 className="text-4xl font-bold mb-6">{t('لوحة التحكم', 'Dashboard')}</h1>
+      
+      <div className="grid gap-6">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle>{t('تحليل العملات الرقمية', 'Cryptocurrency Analysis')}</CardTitle>
+            <CardDescription>
+              {t('متابعة أسعار العملات الرقمية والتحليلات', 'Track cryptocurrency prices and analytics')}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <CryptoDataDisplay defaultCoin="bitcoin" />
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
