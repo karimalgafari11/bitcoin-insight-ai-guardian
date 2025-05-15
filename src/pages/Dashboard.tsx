@@ -1,49 +1,48 @@
 
-import { useState } from "react";
+import React from "react";
 import AppSidebar from "@/components/AppSidebar";
+import { Card, CardContent } from "@/components/ui/card";
 import BitcoinChart from "@/components/BitcoinChart";
 import BitcoinStats from "@/components/BitcoinStats";
 import TradingRecommendation from "@/components/TradingRecommendation";
 import LatestNews from "@/components/LatestNews";
-import TechnicalIndicators from "@/components/TechnicalIndicators";
-import TimeframeSelector from "@/components/TimeframeSelector";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useLanguage } from "@/contexts/LanguageContext";
+import CryptoDataDisplay from "@/components/CryptoDataDisplay";
 
 const Dashboard = () => {
-  const [timeframe, setTimeframe] = useState("4h");
   const { t } = useLanguage();
 
   return (
-    <div className="min-h-screen flex w-full">
+    <div className="flex min-h-screen">
       <AppSidebar />
       <div className="flex-1 overflow-auto">
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-semibold">{t("لوحة تحليل البيتكوين", "Bitcoin Analysis Dashboard")}</h1>
+            <h1 className="text-2xl font-semibold">
+              {t("لوحة المعلومات", "Dashboard")}
+            </h1>
             <div className="flex items-center gap-4">
               <SidebarTrigger />
             </div>
           </div>
 
-          <BitcoinStats className="mb-6" />
-          
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-            <div className="lg:col-span-2">
-              <div className="flex justify-between items-center mb-4">
-                <TimeframeSelector 
-                  onTimeframeChange={(newTimeframe) => setTimeframe(newTimeframe)}
-                  className="flex-row-reverse" 
-                />
-              </div>
-              <BitcoinChart timeframe={timeframe} />
+            <Card className="col-span-full lg:col-span-2">
+              <CardContent className="pt-6">
+                <BitcoinChart />
+              </CardContent>
+            </Card>
+            <div className="space-y-6">
+              <BitcoinStats />
+              <TradingRecommendation />
             </div>
-            <TradingRecommendation />
           </div>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+          <CryptoDataDisplay />
+
+          <div className="mb-6">
             <LatestNews />
-            <TechnicalIndicators />
           </div>
         </div>
       </div>
