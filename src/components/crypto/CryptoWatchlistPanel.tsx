@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { WatchlistPanel } from './WatchlistPanel';
+import WatchlistPanel from './WatchlistPanel';
 
 interface CryptoWatchlistPanelProps {
   onSymbolSelect: (symbol: string) => void;
