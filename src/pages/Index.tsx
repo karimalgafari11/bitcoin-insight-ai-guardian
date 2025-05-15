@@ -2,7 +2,7 @@
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { AppSidebar } from "@/components/AppSidebar"; // Fixed import
+import { AppSidebar } from "@/components/AppSidebar"; 
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import CryptoDataDisplay from "@/components/CryptoDataDisplay";
 import DashboardMetricsCards from "@/components/dashboard/DashboardMetricsCards";
@@ -18,8 +18,11 @@ const Index = () => {
       <AppSidebar />
       <div className="flex-1 overflow-auto bg-gray-50 dark:bg-gray-900">
         <div className="container mx-auto py-6 px-4 max-w-7xl">
-          <div className="flex justify-between items-center mb-6 sticky top-0 z-10 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm py-2">
-            <h1 className="text-4xl font-bold">{t('لوحة التحكم', 'Dashboard')}</h1>
+          <div className="flex justify-between items-center mb-6 sticky top-0 z-10 bg-gray-50/90 dark:bg-gray-900/90 backdrop-blur-sm py-2">
+            <div>
+              <h1 className="text-3xl font-bold">{t('لوحة التحكم', 'Dashboard')}</h1>
+              <p className="text-gray-500 dark:text-gray-400">{t('مرحبًا، إليك آخر التحديثات', 'Welcome, here are the latest updates')}</p>
+            </div>
             <SidebarTrigger className="bg-white dark:bg-gray-800 shadow-sm" />
           </div>
           
@@ -36,7 +39,7 @@ const Index = () => {
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
             <div className="lg:col-span-2">
-              <Card>
+              <Card className="border-none shadow-md bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900">
                 <CardHeader>
                   <CardTitle>{t('تحليل العملات الرقمية', 'Cryptocurrency Analysis')}</CardTitle>
                   <CardDescription>
