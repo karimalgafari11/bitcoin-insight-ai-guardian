@@ -17,7 +17,10 @@ interface CryptoPriceChartProps {
 const CryptoPriceChart: React.FC<CryptoPriceChartProps> = ({ priceData }) => {
   const { t, language } = useLanguage();
 
-  // استخدام useMemo لمنع إعادة إنشاء الدوال عند كل تقديم
+  // Memoize the formatted data to prevent unnecessary calculations
+  const chartData = useMemo(() => priceData, [priceData]);
+
+  // Memoize formatting functions to prevent recreation on each render
   const formatDate = useMemo(() => {
     return (date: Date) => {
       if (!date || isNaN(date.getTime())) {
@@ -28,12 +31,7 @@ const CryptoPriceChart: React.FC<CryptoPriceChartProps> = ({ priceData }) => {
     };
   }, [language]);
 
-  // استخدام useMemo لمنع التقديم المتكرر للبيانات
-  const chartData = useMemo(() => {
-    return priceData;
-  }, [priceData]);
-
-  // استخدام useMemo للدالة المنسقة مع التحقق من صحة التاريخ
+  // Memoize label formatter
   const labelFormatter = useMemo(() => {
     return (label: any) => {
       try {
@@ -58,28 +56,41 @@ const CryptoPriceChart: React.FC<CryptoPriceChartProps> = ({ priceData }) => {
     };
   }, []);
 
-  // استخدام useMemo للقيمة المنسقة
+  // Memoize value formatter
   const valueFormatter = useMemo(() => {
     return (value: number) => [`$${value.toFixed(2)}`, t('السعر', 'Price')];
   }, [t]);
 
+  // Use CSS for stable rendering
   return (
-    <div className="h-[250px]">
+    <div className="h-[250px] w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={chartData}>
-          <CartesianGrid strokeDasharray="3 3" />
+        <LineChart
+          data={chartData}
+          margin={{ top: 5, right: 5, bottom: 5, left: 5 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.1)" />
           <XAxis 
             dataKey="date"
             tickFormatter={formatDate}
             tick={{ fontSize: 12 }}
+            stroke="rgba(0,0,0,0.3)"
           />
           <YAxis 
             domain={['auto', 'auto']}
             tick={{ fontSize: 12 }}
+            stroke="rgba(0,0,0,0.3)"
+            width={60}
           />
           <Tooltip 
             labelFormatter={labelFormatter}
             formatter={valueFormatter}
+            isAnimationActive={false}
+            contentStyle={{
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+              border: '1px solid #ccc',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            }}
           />
           <Line 
             type="monotone"
@@ -87,8 +98,8 @@ const CryptoPriceChart: React.FC<CryptoPriceChartProps> = ({ priceData }) => {
             stroke="#10b981"
             strokeWidth={2}
             dot={false}
-            animationDuration={500}
-            isAnimationActive={false} // إيقاف الرسوم المتحركة لتحسين الأداء
+            isAnimationActive={false}
+            activeDot={{ stroke: '#047857', strokeWidth: 1, r: 4, fill: '#10b981' }}
           />
         </LineChart>
       </ResponsiveContainer>
@@ -96,4 +107,5 @@ const CryptoPriceChart: React.FC<CryptoPriceChartProps> = ({ priceData }) => {
   );
 };
 
-export default React.memo(CryptoPriceChart); // استخدام React.memo لمنع إعادة تقديم المكون عندما لا تتغير الخصائص
+// Use React.memo to prevent unnecessary re-renders
+export default React.memo(CryptoPriceChart);

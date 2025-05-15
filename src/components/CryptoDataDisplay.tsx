@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useCryptoData } from '@/hooks/useCryptoData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -41,33 +41,34 @@ const CryptoDataDisplay: React.FC<CryptoDataDisplayProps> = ({ defaultCoin = 'bi
     lastUpdated 
   } = useCryptoData(selectedCoin, timeframe);
 
-  const handleCoinChange = (value: string) => {
+  // Use useCallback to prevent re-creations of event handlers
+  const handleCoinChange = useCallback((value: string) => {
     setSelectedCoin(value);
-  };
+  }, []);
 
-  const handleTimeframeChange = (value: string) => {
+  const handleTimeframeChange = useCallback((value: string) => {
     setTimeframe(value);
-  };
+  }, []);
   
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     refreshData();
     setLastRefresh(new Date());
     toast({
       title: t('تحديث البيانات', 'Data Refresh'),
       description: t('جاري تحديث البيانات...', 'Refreshing data...'),
     });
-  };
+  }, [refreshData, t]);
 
-  const handleFilterChange = (newFilters: CryptoFilterOptions) => {
+  const handleFilterChange = useCallback((newFilters: CryptoFilterOptions) => {
     setFilterOptions(newFilters);
-  };
+  }, []);
 
-  const toggleWatchlist = () => {
-    setShowWatchlist(!showWatchlist);
-  };
+  const toggleWatchlist = useCallback(() => {
+    setShowWatchlist(prev => !prev);
+  }, []);
 
   // Apply filters to the data
-  const filteredData = React.useMemo(() => {
+  const filteredData = useMemo(() => {
     if (!data || !data.metadata) return data;
     
     const currentPrice = data.metadata.current_price;
@@ -88,6 +89,7 @@ const CryptoDataDisplay: React.FC<CryptoDataDisplayProps> = ({ defaultCoin = 'bi
     return null;
   }, [data, filterOptions]);
 
+  // Main layout with fixed height containers to prevent layout shifts
   return (
     <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
       {showWatchlist && (
@@ -153,7 +155,7 @@ const CryptoDataDisplay: React.FC<CryptoDataDisplayProps> = ({ defaultCoin = 'bi
             )}
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="relative min-h-[350px]">
           {loading ? (
             <CryptoLoadingState />
           ) : error ? (
@@ -176,4 +178,4 @@ const CryptoDataDisplay: React.FC<CryptoDataDisplayProps> = ({ defaultCoin = 'bi
   );
 };
 
-export default CryptoDataDisplay;
+export default React.memo(CryptoDataDisplay);
