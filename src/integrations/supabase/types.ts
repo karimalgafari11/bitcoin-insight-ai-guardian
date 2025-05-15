@@ -1000,6 +1000,17 @@ export type Database = {
         Args: { user_id: string; timeframe: string; market_data: Json }
         Returns: string
       }
+      get_user_profile: {
+        Args: { user_id: string }
+        Returns: {
+          avatar_url: string | null
+          created_at: string | null
+          full_name: string | null
+          id: string
+          updated_at: string | null
+          username: string | null
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

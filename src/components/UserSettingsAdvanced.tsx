@@ -16,7 +16,14 @@ const UserSettingsAdvanced = () => {
   const [isCreatingAlert, setIsCreatingAlert] = useState(false);
   
   const handleBackupData = async () => {
-    if (!user) return;
+    if (!user) {
+      toast({
+        title: t("خطأ", "Error"),
+        description: t("يجب تسجيل الدخول أولاً", "You must be logged in first"),
+        variant: "destructive",
+      });
+      return;
+    }
     
     setIsBackupLoading(true);
     
@@ -42,7 +49,14 @@ const UserSettingsAdvanced = () => {
   };
   
   const createTestAlert = async () => {
-    if (!user) return;
+    if (!user) {
+      toast({
+        title: t("خطأ", "Error"),
+        description: t("يجب تسجيل الدخول أولاً", "You must be logged in first"),
+        variant: "destructive",
+      });
+      return;
+    }
     
     setIsCreatingAlert(true);
     
@@ -53,11 +67,12 @@ const UserSettingsAdvanced = () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabase.auth.getSession().then(res => res.data.session?.access_token)}`,
           },
           body: JSON.stringify({
             user_id: user.id,
             alert_type: 'price_threshold',
-            price_threshold: 50000, // مثال لسعر بيتكوين
+            price_threshold: 50000,
             message: t("وصل سعر بيتكوين إلى 50,000 دولار", "Bitcoin price has reached $50,000")
           }),
         }
