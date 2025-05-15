@@ -25,7 +25,8 @@ export function useCryptoData(coinId: string = 'bitcoin', days: string = '7', cu
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const controller = new AbortController();
+    // Create a flag to track if the component is still mounted
+    let isMounted = true;
     
     async function fetchCryptoData() {
       try {
@@ -39,9 +40,11 @@ export function useCryptoData(coinId: string = 'bitcoin', days: string = '7', cu
             coinId,
             days,
             currency
-          },
-          signal: controller.signal
+          }
         });
+
+        // If component has been unmounted, don't update state
+        if (!isMounted) return;
 
         if (responseError) {
           console.error('Supabase function error:', responseError);
@@ -62,11 +65,8 @@ export function useCryptoData(coinId: string = 'bitcoin', days: string = '7', cu
 
         setData(responseData as CryptoMarketData);
       } catch (err) {
-        // Ignore errors from aborted requests
-        if (err.name === 'AbortError') {
-          console.log('Request was aborted');
-          return;
-        }
+        // Only update state if component is still mounted
+        if (!isMounted) return;
         
         console.error('Error fetching crypto data:', err);
         const errorMessage = err instanceof Error ? err.message : 'خطأ في جلب بيانات العملة الرقمية';
@@ -77,7 +77,8 @@ export function useCryptoData(coinId: string = 'bitcoin', days: string = '7', cu
           variant: "destructive"
         });
       } finally {
-        if (!controller.signal.aborted) {
+        // Only update state if component is still mounted
+        if (isMounted) {
           setLoading(false);
         }
       }
@@ -85,10 +86,9 @@ export function useCryptoData(coinId: string = 'bitcoin', days: string = '7', cu
 
     fetchCryptoData();
     
-    // Cleanup function to abort any pending requests when component unmounts
-    // or dependencies change
+    // Cleanup function to handle component unmounting
     return () => {
-      controller.abort();
+      isMounted = false;
     };
   }, [coinId, days, currency]);
 
