@@ -24,6 +24,7 @@ import {
 import { Link, useLocation } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import LanguageSwitcher from "./LanguageSwitcher";
+import UserProfile from "./UserProfile";
 
 const AppSidebar = () => {
   const location = useLocation();
@@ -79,9 +80,11 @@ const AppSidebar = () => {
 
   return (
     <Sidebar>
-      <SidebarHeader className="flex items-center justify-between px-4 py-5">
-        <span className="text-xl font-semibold">BitSight</span>
-        <LanguageSwitcher />
+      <SidebarHeader className="px-4 py-5">
+        <div className="flex items-center justify-between">
+          <span className="text-xl font-semibold">BitSight</span>
+          <LanguageSwitcher />
+        </div>
       </SidebarHeader>
       
       <SidebarContent>
@@ -103,8 +106,13 @@ const AppSidebar = () => {
         </SidebarGroup>
       </SidebarContent>
       
-      <SidebarFooter className="px-4 py-3 text-xs text-muted-foreground">
-        BitSight &copy; 2025
+      <SidebarFooter className="px-4 py-3">
+        <div className="flex flex-col gap-4">
+          <UserProfile />
+          <div className="text-xs text-muted-foreground">
+            BitSight &copy; 2025
+          </div>
+        </div>
       </SidebarFooter>
     </Sidebar>
   );
