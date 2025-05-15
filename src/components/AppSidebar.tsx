@@ -1,102 +1,110 @@
 
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
-  BarChart3, 
-  BookText, 
-  ChartCandlestick, 
-  CircleHelp,
-  Home, 
-  Newspaper, 
-  Settings as SettingsIcon, 
-  TrendingUp,
-  Calculator
-} from "lucide-react";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarHeader,
-  SidebarGroup,
+  Sidebar, 
+  SidebarContent, 
+  SidebarFooter, 
+  SidebarGroup, 
   SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
   SidebarMenu,
-  SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar";
-import { Link, useLocation } from "react-router-dom";
-import { useLanguage } from "@/contexts/LanguageContext";
-import LanguageSwitcher from "./LanguageSwitcher";
-import UserProfile from "./UserProfile";
+  SidebarMenuButton
+} from '@/components/ui/sidebar';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { Link } from 'react-router-dom';
+import { 
+  LayoutDashboard, 
+  LineChart, 
+  BookOpen, 
+  Settings, 
+  CandlestickChart, 
+  BookMarked,
+  FileBarChart,
+  MessageCircle,
+  Globe,
+  Calculator
+} from 'lucide-react';
 
-const AppSidebar = () => {
-  const location = useLocation();
+export function AppSidebar() {
   const { t } = useLanguage();
-  
-  const navigationItems = [
+  const { user, logout } = useAuth();
+
+  const menuItems = [
     {
-      title: t("الرئيسية", "Home"),
-      path: "/",
-      icon: Home,
+      title: t('لوحة التحكم', 'Dashboard'),
+      url: '/dashboard',
+      icon: LayoutDashboard
     },
     {
-      title: t("التحليل", "Analysis"),
-      path: "/analysis",
-      icon: TrendingUp,
+      title: t('التحليل', 'Analysis'),
+      url: '/analysis',
+      icon: LineChart
     },
     {
-      title: t("الأنماط الفنية", "Technical Patterns"),
-      path: "/technical-patterns",
-      icon: BarChart3,
+      title: t('تحليل الشموع', 'Candlestick Analysis'),
+      url: '/candlestick-analysis',
+      icon: CandlestickChart
     },
     {
-      title: t("تحليل الشموع", "Candlestick Analysis"),
-      path: "/candlestick-analysis",
-      icon: ChartCandlestick,
+      title: t('الأنماط الفنية', 'Technical Patterns'),
+      url: '/technical-patterns',
+      icon: FileBarChart
     },
     {
-      title: t("الأخبار والمعنويات", "News & Sentiment"),
-      path: "/news-sentiment",
-      icon: Newspaper,
+      title: t('يومية التداول', 'Trading Journal'),
+      url: '/trading-journal',
+      icon: BookMarked
     },
     {
-      title: t("دفتر التداول", "Trading Journal"),
-      path: "/trading-journal",
-      icon: BookText,
+      title: t('تحليل الأخبار', 'News Sentiment'),
+      url: '/news-sentiment',
+      icon: MessageCircle
     },
     {
-      title: t("حاسبة المخاطر", "Risk Calculator"),
-      path: "/risk-calculator",
-      icon: Calculator,
+      title: t('حاسبة المخاطر', 'Risk Calculator'),
+      url: '/risk-calculator',
+      icon: Calculator
     },
     {
-      title: t("التعليم", "Education"),
-      path: "/education",
-      icon: CircleHelp,
+      title: t('التعليم', 'Education'),
+      url: '/education',
+      icon: BookOpen
     },
     {
-      title: t("الإعدادات", "Settings"),
-      path: "/settings",
-      icon: SettingsIcon,
+      title: t('التكاملات', 'Integrations'),
+      url: '/integrations',
+      icon: Globe
     },
+    {
+      title: t('الإعدادات', 'Settings'),
+      url: '/settings',
+      icon: Settings
+    }
   ];
 
   return (
     <Sidebar>
-      <SidebarHeader className="px-4 py-5">
-        <div className="flex items-center justify-between">
-          <span className="text-xl font-semibold">BitSight</span>
-          <LanguageSwitcher />
+      <SidebarHeader className="p-4">
+        <div className="flex items-center">
+          <img src="/placeholder.svg" alt="Logo" className="h-8 w-8 mr-2" />
+          <div className="font-bold text-lg">TradePro</div>
         </div>
       </SidebarHeader>
-      
+
       <SidebarContent>
         <SidebarGroup>
+          <SidebarGroupLabel>{t('الرئيسية', 'Main')}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navigationItems.map((item) => (
-                <SidebarMenuItem key={item.path}>
-                  <SidebarMenuButton asChild className={location.pathname === item.path ? "bg-sidebar-accent" : ""}>
-                    <Link to={item.path} className="flex items-center gap-3 text-right">
-                      <item.icon className="h-[18px] w-[18px]" />
-                      <span className="flex-1">{item.title}</span>
+              {menuItems.map((item) => (
+                <SidebarMenuItem key={item.url}>
+                  <SidebarMenuButton asChild>
+                    <Link to={item.url}>
+                      <item.icon className="h-4 w-4 mr-2" />
+                      <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -105,17 +113,21 @@ const AppSidebar = () => {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      
-      <SidebarFooter className="px-4 py-3">
-        <div className="flex flex-col gap-4">
-          <UserProfile />
-          <div className="text-xs text-muted-foreground">
-            BitSight &copy; 2025
-          </div>
+
+      <SidebarFooter className="p-4 border-t">
+        <div className="flex flex-col gap-2">
+          <LanguageSwitcher />
+          {user && (
+            <button 
+              onClick={logout} 
+              className="w-full text-sm text-red-500 hover:text-red-600 text-left"
+            >
+              {t('تسجيل الخروج', 'Logout')}
+            </button>
+          )}
         </div>
       </SidebarFooter>
     </Sidebar>
   );
-};
+}
 
-export default AppSidebar;

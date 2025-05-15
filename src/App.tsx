@@ -16,6 +16,7 @@ import RiskCalculator from './pages/RiskCalculator';
 import Education from './pages/Education';
 import CandlestickAnalysis from './pages/CandlestickAnalysis';
 import TechnicalPatterns from './pages/TechnicalPatterns';
+import Integrations from './pages/Integrations';
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
         <Route path="/education" element={<Education />} />
         <Route path="/candlestick-analysis" element={<CandlestickAnalysis />} />
         <Route path="/technical-patterns" element={<TechnicalPatterns />} />
+        <Route path="/integrations" element={<Integrations />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <Toaster />
