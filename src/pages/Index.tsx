@@ -22,7 +22,9 @@ const Index = () => {
     if (window.location.pathname === "/") {
       navigate("/dashboard", { replace: true });
     }
-  }, [navigate]);
+    // Excluding navigate from dependencies to prevent it from causing additional redirects
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   
   return (
     <div className="min-h-screen flex w-full">

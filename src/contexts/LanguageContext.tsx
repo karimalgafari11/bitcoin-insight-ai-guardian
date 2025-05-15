@@ -17,18 +17,33 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return (savedLanguage as Language) || 'ar';
   });
 
+  // Apply document direction changes without causing unnecessary re-renders
   useEffect(() => {
+    // Store in localStorage
     localStorage.setItem('language', language);
-    document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
-    document.documentElement.lang = language;
+
+    // Update document direction and language attributes
+    if (document.documentElement) {
+      document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
+      document.documentElement.lang = language;
+    }
+
+    // We're using document.documentElement directly to avoid causing re-renders
   }, [language]);
 
   const t = (arabic: string, english: string) => {
     return language === 'ar' ? arabic : english;
   };
 
+  // Memoize the context value to prevent unnecessary re-renders
+  const contextValue = React.useMemo(() => ({
+    language,
+    setLanguage,
+    t
+  }), [language]);
+
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+    <LanguageContext.Provider value={contextValue}>
       {children}
     </LanguageContext.Provider>
   );

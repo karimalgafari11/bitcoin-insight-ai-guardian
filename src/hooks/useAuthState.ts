@@ -33,13 +33,13 @@ export function useAuthState() {
               title: "تم تسجيل الدخول بنجاح",
               description: "مرحباً بك في منصة التداول الخاصة بك",
             });
-            setTimeout(() => navigate('/'), 300);
+            navigate('/', { replace: true });
           } else if (event === 'SIGNED_OUT') {
             toast({
               title: "تم تسجيل الخروج",
               description: "نتمنى أن نراك قريباً",
             });
-            setTimeout(() => navigate('/auth'), 300);
+            navigate('/auth', { replace: true });
           }
         }
       }
@@ -66,10 +66,8 @@ export function useAuthState() {
             setUser(null);
           }
           
-          // تأخير قليل لتجنب الوميض أثناء التحميل
-          setTimeout(() => {
-            if (mounted) setLoading(false);
-          }, 300);
+          // Set loading to false immediately - we don't need the delay
+          setLoading(false);
         }
       } catch (err) {
         console.error("Session fetch error:", err);
@@ -84,7 +82,7 @@ export function useAuthState() {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [navigate]);
 
   return { session, user, loading };
 }

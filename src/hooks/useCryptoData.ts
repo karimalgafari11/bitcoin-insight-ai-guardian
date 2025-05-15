@@ -3,12 +3,17 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { fetchCryptoData, preloadCommonCryptoData } from '@/utils/cryptoDataFetcher';
-import { setupRealtimeChannel } from '@/utils/cryptoRealtimeChannel';
+import { setupRealtimeChannel, cleanupChannel } from '@/utils/cryptoRealtimeChannel';
 import { CryptoMarketData, UseCryptoDataResult } from '@/types/crypto';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 // Track mounted instances to optimize network requests
 const mountedInstances = new Set<string>();
+
+// Cache TTL in milliseconds
+const CACHE_TTL = 30000; // 30 seconds
+const POLL_INTERVAL_STANDARD = 300000; // 5 minutes
+const POLL_INTERVAL_SHORT = 60000; // 1 minute
 
 export function useCryptoData(
   coinId: string = 'bitcoin',
@@ -31,6 +36,7 @@ export function useCryptoData(
   const lastFetchRef = useRef<number>(0);
   const paramsRef = useRef({ coinId, days, currency });
   const instanceIdRef = useRef<string>(`${coinId}:${days}:${currency}`);
+  const mountedRef = useRef<boolean>(true); // Track if component is mounted
   
   // Function to fetch data
   const fetchCryptoDataCallback = useCallback(async (force = false) => {
@@ -45,7 +51,7 @@ export function useCryptoData(
       paramsRef.current.days !== days ||
       paramsRef.current.currency !== currency;
       
-    if (!force && !hasParamsChanged && now - lastFetchRef.current < 30000) {
+    if (!force && !hasParamsChanged && now - lastFetchRef.current < CACHE_TTL) {
       return;
     }
     
@@ -65,6 +71,9 @@ export function useCryptoData(
     try {
       const result = await fetchCryptoData(coinId, days, currency, force);
       
+      // Only update state if component is still mounted
+      if (!mountedRef.current) return;
+      
       if (result.data) {
         setData(result.data);
         setIsRealtime(result.data.isRealtime || false);
@@ -76,18 +85,22 @@ export function useCryptoData(
         setError(result.error);
       }
     } catch (err) {
-      // Only set error for non-abort errors
-      if (!(err instanceof DOMException && err.name === 'AbortError')) {
+      // Only set error for non-abort errors and if component is still mounted
+      if (!(err instanceof DOMException && err.name === 'AbortError') && mountedRef.current) {
         console.error('Error in fetch callback:', err);
         setError(err instanceof Error ? err.message : 'Unknown error');
       }
     } finally {
-      setLoading(false);
+      // Only update loading state if component is still mounted
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
   }, [coinId, days, currency, loading]);
   
   // Set up realtime updates and polling
   useEffect(() => {
+    mountedRef.current = true;
     const instanceId = `${coinId}:${days}:${currency}`;
     const isFirstInstance = !mountedInstances.has(instanceId);
     
@@ -100,7 +113,7 @@ export function useCryptoData(
     
     // Set up realtime channel for updates
     const onRealtimeUpdate = (payload: any) => {
-      if (!payload.data) return;
+      if (!payload.data || !mountedRef.current) return;
       
       const updatedData = payload.data;
       setData(updatedData);
@@ -119,11 +132,16 @@ export function useCryptoData(
       }
     };
 
+    // Clean up any existing channel before setting up a new one
+    if (realtimeChannelRef.current) {
+      cleanupChannel(paramsRef.current.coinId, paramsRef.current.days, paramsRef.current.currency);
+    }
+
     const channel = setupRealtimeChannel(coinId, days, currency, onRealtimeUpdate);
     realtimeChannelRef.current = channel;
     
     // Set up polling interval (5 minutes for standard data, 1 minute for 1-day view)
-    const intervalMs = days === '1' ? 60000 : 300000;
+    const intervalMs = days === '1' ? POLL_INTERVAL_SHORT : POLL_INTERVAL_STANDARD;
     
     // Clear any existing timer
     if (fetchTimerRef.current !== null) {
@@ -132,7 +150,9 @@ export function useCryptoData(
     
     // Set up new timer for polling
     fetchTimerRef.current = window.setInterval(() => {
-      fetchCryptoDataCallback();
+      if (mountedRef.current) {
+        fetchCryptoDataCallback();
+      }
     }, intervalMs);
     
     // If this is the first load of this type, preload common data
@@ -140,12 +160,16 @@ export function useCryptoData(
     if (isFirstInstance && coinId === 'bitcoin' && days === '7') {
       // Wait a bit to not compete with initial load
       setTimeout(() => {
-        preloadCommonCryptoData();
+        if (mountedRef.current) {
+          preloadCommonCryptoData();
+        }
       }, 5000);
     }
     
     // Clean up on unmount
     return () => {
+      mountedRef.current = false;
+      
       // Remove this instance from the registry
       mountedInstances.delete(instanceId);
       
@@ -155,7 +179,7 @@ export function useCryptoData(
       }
       
       if (realtimeChannelRef.current) {
-        supabase.removeChannel(realtimeChannelRef.current);
+        cleanupChannel(coinId, days, currency);
         realtimeChannelRef.current = null;
       }
       
@@ -168,12 +192,14 @@ export function useCryptoData(
   
   // Function to manually refresh data
   const refreshData = useCallback(() => {
-    fetchCryptoDataCallback(true);
-    setLastRefresh(new Date());
-    toast({
-      title: t("جاري التحديث", "Refreshing"),
-      description: t("يتم تحديث بيانات العملة الرقمية الآن", "Updating cryptocurrency data now"),
-    });
+    if (mountedRef.current) {
+      fetchCryptoDataCallback(true);
+      setLastRefresh(new Date());
+      toast({
+        title: t("جاري التحديث", "Refreshing"),
+        description: t("يتم تحديث بيانات العملة الرقمية الآن", "Updating cryptocurrency data now"),
+      });
+    }
   }, [fetchCryptoDataCallback, t]);
 
   return { 
