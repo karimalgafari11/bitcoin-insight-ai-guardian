@@ -29,6 +29,14 @@ import {
 } from "lucide-react";
 import UserSettingsAdvanced from "@/components/UserSettingsAdvanced";
 
+// Add interface for notification preferences
+interface NotificationPreferences {
+  enabled: boolean;
+  price_alerts?: boolean;
+  market_updates?: boolean;
+  trade_signals?: boolean;
+}
+
 const Settings = () => {
   const { user } = useAuth();
   const { t, language, setLanguage } = useLanguage();
@@ -53,7 +61,10 @@ const Settings = () => {
         
         if (data) {
           setDarkMode(data.dark_mode);
-          setNotificationsEnabled(data.notification_preferences?.enabled ?? true);
+          
+          // Properly handle the notification_preferences value with type safety
+          const notificationPrefs = data.notification_preferences as NotificationPreferences | null;
+          setNotificationsEnabled(notificationPrefs?.enabled ?? true);
         }
       } catch (error) {
         console.error('Error fetching settings:', error);
@@ -102,14 +113,18 @@ const Settings = () => {
     try {
       setNotificationsEnabled(checked);
       
+      // Create a proper notification preferences object
+      const notificationPreferences: NotificationPreferences = {
+        enabled: checked,
+        price_alerts: checked,
+        market_updates: checked,
+        trade_signals: checked
+      };
+      
       const { error } = await supabase
         .from('user_settings')
         .update({
-          notification_preferences: {
-            enabled: checked,
-            price_alerts: checked,
-            market_updates: checked,
-          }
+          notification_preferences: notificationPreferences
         })
         .eq('user_id', user.id);
         
