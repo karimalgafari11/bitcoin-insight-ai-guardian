@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useCryptoData } from '@/hooks/useCryptoData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { CryptoFilterOptions, DEFAULT_FILTER_OPTIONS } from '@/types/filters';
@@ -16,6 +16,8 @@ import CryptoLoadingState from './crypto/CryptoLoadingState';
 import CryptoErrorState from './crypto/CryptoErrorState';
 import CryptoDisplay from './crypto/CryptoDisplay';
 import CryptoEmptyState from './crypto/CryptoEmptyState';
+import WatchlistButton from './crypto/WatchlistButton';
+import WatchlistPanel from './crypto/WatchlistPanel';
 
 interface CryptoDataDisplayProps {
   defaultCoin?: string;
@@ -27,6 +29,7 @@ const CryptoDataDisplay: React.FC<CryptoDataDisplayProps> = ({ defaultCoin = 'bi
   const [timeframe, setTimeframe] = useState('7');
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [filterOptions, setFilterOptions] = useState<CryptoFilterOptions>(DEFAULT_FILTER_OPTIONS);
+  const [showWatchlist, setShowWatchlist] = useState(false);
   
   const { 
     data, 
@@ -59,6 +62,10 @@ const CryptoDataDisplay: React.FC<CryptoDataDisplayProps> = ({ defaultCoin = 'bi
     setFilterOptions(newFilters);
   };
 
+  const toggleWatchlist = () => {
+    setShowWatchlist(!showWatchlist);
+  };
+
   // Apply filters to the data
   const filteredData = React.useMemo(() => {
     if (!data || !data.metadata) return data;
@@ -82,61 +89,90 @@ const CryptoDataDisplay: React.FC<CryptoDataDisplayProps> = ({ defaultCoin = 'bi
   }, [data, filterOptions]);
 
   return (
-    <Card className="w-full mb-6">
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <div className="flex items-center gap-2">
-          <CardTitle>{t('بيانات العملة الرقمية', 'Cryptocurrency Data')}</CardTitle>
-          <CryptoDataSourceBadge 
-            loading={loading} 
-            data={data} 
-            isRealtime={isRealtime} 
-            dataSource={dataSource} 
-          />
-          <CryptoSourceProviderBadge 
-            loading={loading} 
-            dataSource={dataSource} 
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
+      {showWatchlist && (
+        <div className="md:col-span-1">
+          <WatchlistPanel 
+            onSymbolSelect={handleCoinChange} 
+            currentSymbol={selectedCoin}
+            className="sticky top-6"
           />
         </div>
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="icon" 
-            onClick={handleRefresh} 
-            disabled={loading}
-            title={t('تحديث البيانات', 'Refresh Data')}
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          </Button>
-          
-          <CryptoSelector 
-            selectedCoin={selectedCoin}
-            onCoinChange={handleCoinChange}
-            selectedTimeframe={timeframe}
-            onTimeframeChange={handleTimeframeChange}
-            filterOptions={filterOptions}
-            onFilterChange={handleFilterChange}
-          />
-        </div>
-      </CardHeader>
-      <CardContent>
-        {loading ? (
-          <CryptoLoadingState />
-        ) : error ? (
-          <CryptoErrorState error={error} />
-        ) : filteredData && filteredData.prices && filteredData.prices.length > 0 ? (
-          <CryptoDisplay
-            data={filteredData}
-            selectedCoin={selectedCoin}
-            dataSource={dataSource}
-            lastUpdated={lastUpdated}
-            lastRefresh={lastRefresh}
-            isRealtime={isRealtime}
-          />
-        ) : (
-          <CryptoEmptyState />
-        )}
-      </CardContent>
-    </Card>
+      )}
+      
+      <Card className={`w-full mb-6 ${showWatchlist ? 'md:col-span-3' : 'md:col-span-4'}`}>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <div className="flex items-center gap-2">
+            <CardTitle>{t('بيانات العملة الرقمية', 'Cryptocurrency Data')}</CardTitle>
+            <CryptoDataSourceBadge 
+              loading={loading} 
+              data={data} 
+              isRealtime={isRealtime} 
+              dataSource={dataSource} 
+            />
+            <CryptoSourceProviderBadge 
+              loading={loading} 
+              dataSource={dataSource} 
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={toggleWatchlist} 
+              title={t('إظهار/إخفاء قائمة المراقبة', 'Toggle Watchlist')}
+            >
+              <Star className={`h-4 w-4 ${showWatchlist ? 'fill-yellow-400 text-yellow-400' : ''}`} />
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={handleRefresh} 
+              disabled={loading}
+              title={t('تحديث البيانات', 'Refresh Data')}
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            </Button>
+            
+            <CryptoSelector 
+              selectedCoin={selectedCoin}
+              onCoinChange={handleCoinChange}
+              selectedTimeframe={timeframe}
+              onTimeframeChange={handleTimeframeChange}
+              filterOptions={filterOptions}
+              onFilterChange={handleFilterChange}
+            />
+            
+            {!loading && data && (
+              <WatchlistButton 
+                coinId={selectedCoin} 
+                size="icon"
+                variant="outline"
+              />
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <CryptoLoadingState />
+          ) : error ? (
+            <CryptoErrorState error={error} />
+          ) : filteredData && filteredData.prices && filteredData.prices.length > 0 ? (
+            <CryptoDisplay
+              data={filteredData}
+              selectedCoin={selectedCoin}
+              dataSource={dataSource}
+              lastUpdated={lastUpdated}
+              lastRefresh={lastRefresh}
+              isRealtime={isRealtime}
+            />
+          ) : (
+            <CryptoEmptyState />
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
