@@ -61,7 +61,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loading,
         signUp: handleSignUp,
         signIn: handleSignIn,
-        signOut,
+        // Fix here: The signOut function from the service returns Promise<{ success: boolean }>,
+        // but the type definition expects Promise<void>. We need to adapt this to match.
+        signOut: async () => {
+          await signOut();
+          // By not returning anything, this function now returns Promise<void> as expected
+        },
         resendEmailConfirmation: handleResendEmailConfirmation,
       }}
     >
