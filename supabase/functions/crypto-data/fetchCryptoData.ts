@@ -9,9 +9,9 @@ import { generateFallbackData } from "./utils/mockDataGenerator.ts";
  * Fetches cryptocurrency data from multiple sources with fallback
  */
 export async function fetchCryptoData(coinId: string, days: string, currency: string) {
-  // Get the API keys with correct spelling
-  const coinMarketCapApiKey = Deno.env.get("coinmarketcap") || "";
-  const coinGeckoApiKey = Deno.env.get("CoinGecko_api_key") || Deno.env.get("Coingecko_api_key") || "";
+  // Remove API keys references for security
+  const coinMarketCapApiKey = ""; // Removed API key
+  const coinGeckoApiKey = ""; // Removed API key
   
   console.log("Using API keys - CoinMarketCap available:", !!coinMarketCapApiKey, "CoinGecko available:", !!coinGeckoApiKey);
   

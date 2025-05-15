@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
-import { Server, CloudCog, Globe, Lock, ArrowRight, BarChartHorizontal } from "lucide-react";
+import { Server, CloudCog, Globe, Lock, ArrowRight, BarChartHorizontal, AlertTriangle } from "lucide-react";
 
 interface TradingPlatformTabProps {
   apiKeys: Record<string, string>;
@@ -22,6 +22,17 @@ interface TradingPlatformTabProps {
 const TradingPlatformTab = ({ apiKeys, setApiKeys }: TradingPlatformTabProps) => {
   const { t } = useLanguage();
   const { toast } = useToast();
+
+  // Reset all API keys for security
+  React.useEffect(() => {
+    setApiKeys({
+      binance: "",
+      tradingview: "",
+      metatrader: "",
+      coinbase: "",
+      ftx: "",
+    });
+  }, [setApiKeys]);
 
   const handleSaveApiKey = (platform: keyof typeof apiKeys) => {
     if (!apiKeys[platform]) {
@@ -36,6 +47,9 @@ const TradingPlatformTab = ({ apiKeys, setApiKeys }: TradingPlatformTabProps) =>
       return;
     }
 
+    // Clear the API key after saving for security
+    setApiKeys(prev => ({ ...prev, [platform]: "" }));
+    
     toast({
       title: t("تم حفظ المفتاح", "API Key Saved"),
       description: t(
@@ -48,11 +62,14 @@ const TradingPlatformTab = ({ apiKeys, setApiKeys }: TradingPlatformTabProps) =>
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t("منصات التداول", "Trading Platforms")}</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle>{t("منصات التداول", "Trading Platforms")}</CardTitle>
+          <AlertTriangle className="text-amber-500" />
+        </div>
         <CardDescription>
           {t(
-            "قم بربط حسابات منصات التداول الخاصة بك لتسهيل إدارتها",
-            "Connect your trading platform accounts for easier management"
+            "تم حذف جميع مفاتيح API للحفاظ على الأمان",
+            "All API keys have been removed for security"
           )}
         </CardDescription>
       </CardHeader>
