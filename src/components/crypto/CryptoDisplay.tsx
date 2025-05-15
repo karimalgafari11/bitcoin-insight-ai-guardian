@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { getSymbolName, formatData } from '@/utils/cryptoUtils';
+import { getSymbolName, formatData } from '@/utils/crypto';
 import CryptoPriceHeader from './CryptoPriceHeader';
 import CryptoMarketMetrics from './CryptoMarketMetrics';
 import CryptoPriceChart from './CryptoPriceChart';
