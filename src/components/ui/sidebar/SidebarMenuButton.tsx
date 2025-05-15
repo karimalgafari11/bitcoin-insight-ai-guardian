@@ -56,8 +56,10 @@ export const SidebarMenuButton = React.forwardRef<
       // If it's a Link component from react-router-dom (which sets an onClick handler),
       // we should let it handle the navigation without interference
       if (onClick) {
-        // Call the original onClick (which might be from Link)
-        onClick(event);
+        // Cast the event to any to bypass TypeScript's strict type checking
+        // This is necessary because the onClick could be from various element types
+        // when using the asChild prop
+        onClick(event as unknown as React.MouseEvent<HTMLButtonElement>);
       }
     };
 
