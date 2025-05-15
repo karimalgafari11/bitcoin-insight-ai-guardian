@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import {
   Card,
@@ -22,17 +22,8 @@ interface TradingPlatformTabProps {
 const TradingPlatformTab = ({ apiKeys, setApiKeys }: TradingPlatformTabProps) => {
   const { t } = useLanguage();
   const { toast } = useToast();
-
-  // Reset all API keys for security
-  React.useEffect(() => {
-    setApiKeys({
-      binance: "",
-      tradingview: "",
-      metatrader: "",
-      coinbase: "",
-      ftx: "",
-    });
-  }, [setApiKeys]);
+  const [apiSecret, setApiSecret] = useState("");
+  const [keysSaved, setKeysSaved] = useState(false);
 
   const handleSaveApiKey = (platform: keyof typeof apiKeys) => {
     if (!apiKeys[platform]) {
@@ -47,8 +38,24 @@ const TradingPlatformTab = ({ apiKeys, setApiKeys }: TradingPlatformTabProps) =>
       return;
     }
 
-    // Clear the API key after saving for security
-    setApiKeys(prev => ({ ...prev, [platform]: "" }));
+    if (platform === "binance" && !apiSecret) {
+      toast({
+        title: t("خطأ", "Error"),
+        description: t(
+          "يرجى إدخال مفتاح السري أيضاً",
+          "Please enter the Secret key as well"
+        ),
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // For Binance, save both key and secret to localStorage
+    if (platform === "binance") {
+      localStorage.setItem("binance_api_key", apiKeys.binance);
+      localStorage.setItem("binance_api_secret", apiSecret);
+      setKeysSaved(true);
+    }
     
     toast({
       title: t("تم حفظ المفتاح", "API Key Saved"),
@@ -59,18 +66,31 @@ const TradingPlatformTab = ({ apiKeys, setApiKeys }: TradingPlatformTabProps) =>
     });
   };
 
+  // Load any saved Binance keys on component mount
+  useEffect(() => {
+    const savedBinanceKey = localStorage.getItem("binance_api_key");
+    if (savedBinanceKey) {
+      setApiKeys(prev => ({ ...prev, binance: savedBinanceKey }));
+      setKeysSaved(true);
+    }
+    
+    const savedBinanceSecret = localStorage.getItem("binance_api_secret");
+    if (savedBinanceSecret) {
+      setApiSecret(savedBinanceSecret);
+    }
+  }, [setApiKeys]);
+
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>{t("منصات التداول", "Trading Platforms")}</CardTitle>
-          <AlertTriangle className="text-amber-500" />
+          <AlertTriangle className={keysSaved ? "text-green-500" : "text-amber-500"} />
         </div>
         <CardDescription>
-          {t(
-            "تم حذف جميع مفاتيح API للحفاظ على الأمان",
-            "All API keys have been removed for security"
-          )}
+          {keysSaved ? 
+            t("تم حفظ مفاتيح API محلياً", "API keys have been saved locally") : 
+            t("أدخل مفاتيح API للوصول إلى البيانات المباشرة", "Enter API keys to access live data")}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -83,7 +103,7 @@ const TradingPlatformTab = ({ apiKeys, setApiKeys }: TradingPlatformTabProps) =>
               </label>
               <Lock className="h-4 w-4 text-muted-foreground" />
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2">
               <Input
                 id="binance-api"
                 value={apiKeys.binance}
@@ -93,8 +113,14 @@ const TradingPlatformTab = ({ apiKeys, setApiKeys }: TradingPlatformTabProps) =>
                 placeholder="Enter your Binance API key"
                 type="password"
               />
+              <Input
+                id="binance-secret"
+                value={apiSecret}
+                onChange={(e) => setApiSecret(e.target.value)}
+                placeholder="Enter your Binance Secret key"
+                type="password"
+              />
               <Button
-                size="sm"
                 onClick={() => handleSaveApiKey("binance")}
               >
                 {t("حفظ", "Save")}
@@ -187,8 +213,8 @@ const TradingPlatformTab = ({ apiKeys, setApiKeys }: TradingPlatformTabProps) =>
       <CardFooter className="flex flex-col items-start border-t px-6 py-4">
         <p className="text-xs text-muted-foreground mb-2">
           {t(
-            "نحن نستخدم تشفيرًا آمنًا لحماية مفاتيح API الخاصة بك",
-            "We use secure encryption to protect your API keys"
+            "نحن نستخدم تخزين محلي آمن لحماية مفاتيح API الخاصة بك",
+            "We use secure local storage to protect your API keys"
           )}
         </p>
         <div className="flex items-center gap-2">

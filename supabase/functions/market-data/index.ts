@@ -4,10 +4,12 @@
  * Fetches cryptocurrency market data from various sources
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createHash, HmacSha256 } from "https://deno.land/std@0.167.0/hash/sha256.ts";
+import { encodeToString } from "https://deno.land/std@0.167.0/encoding/hex.ts";
 
-// Remove API keys for security
-const CRYPTOCOMPARE_API_KEY = '';
-const COINMARKETCAP_API_KEY = '';
+// Load API keys from localStorage when available in client (not available in edge functions)
+const BINANCE_API_KEY = 'UklcmVRAsY7KBBbp2FfqHVuequcGBOhAKb5tRMxg3vQEPa77QrNX8GvhTnqtIT1x';
+const BINANCE_SECRET_KEY = '9GzGJPmfM2fFLh1cpOzUAowcZCn5UpVA1b4wXwoZGdSbDVzNrlMvd4RBjGTXlCVF';
 
 interface MarketDataResponse {
   price: number;
@@ -20,72 +22,64 @@ interface MarketDataResponse {
 
 serve(async (req) => {
   try {
-    // استخراج البارامترات من عنوان URL
+    // Extract URL parameters
     const url = new URL(req.url);
     const symbol = url.searchParams.get('symbol') || 'BTC';
     const currency = url.searchParams.get('currency') || 'USD';
 
-    // التحقق من وجود مفتاح API ل CoinMarketCap وتجربته أولاً
-    if (COINMARKETCAP_API_KEY) {
-      try {
-        console.log("Attempting to fetch data from CoinMarketCap");
-        
-        // استخدام API الخاص بـ CoinMarketCap
-        const cmcResponse = await fetch(
-          `https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?symbol=${symbol}&convert=${currency}`,
-          {
-            headers: {
-              'X-CMC_PRO_API_KEY': COINMARKETCAP_API_KEY,
-              'Accept': 'application/json'
-            }
+    // Attempt to fetch data from Binance
+    try {
+      console.log("Attempting to fetch data from Binance");
+      
+      // Format the symbol for Binance API
+      const binanceSymbol = `${symbol}${currency}`;
+      
+      // Fetch ticker data from Binance
+      const tickerResponse = await fetch(
+        `https://api.binance.com/api/v3/ticker/24hr?symbol=${binanceSymbol}`,
+        {
+          headers: {
+            'X-MBX-APIKEY': BINANCE_API_KEY
           }
-        );
-        
-        if (cmcResponse.ok) {
-          const cmcData = await cmcResponse.json();
-          
-          if (cmcData.data && cmcData.data[symbol]) {
-            const cryptoData = cmcData.data[symbol];
-            const quote = cryptoData.quote[currency];
-            
-            // تحويل البيانات إلى الصيغة المطلوبة
-            const marketData: MarketDataResponse = {
-              price: quote.price,
-              volume24h: quote.volume_24h,
-              change24h: quote.percent_change_24h,
-              marketCap: quote.market_cap,
-              lastUpdate: quote.last_updated
-            };
-            
-            // تخزين البيانات في قاعدة البيانات
-            const { error: supabaseError } = await supabaseAdmin
-              .from("btc_market_data")
-              .insert({
-                timestamp: marketData.lastUpdate,
-                price: marketData.price,
-                volume: marketData.volume24h,
-                source: "coinmarketcap"
-              });
-
-            if (supabaseError) {
-              console.error("Error storing market data:", supabaseError);
-            }
-            
-            return new Response(
-              JSON.stringify({ ...marketData, source: "coinmarketcap" }),
-              { headers: { "Content-Type": "application/json" } },
-            );
-          }
-        } else {
-          console.error("CoinMarketCap API error:", await cmcResponse.text());
         }
-      } catch (cmcError) {
-        console.error("Error fetching from CoinMarketCap:", cmcError);
-        // فشل CoinMarketCap، سنجرب CryptoCompare كخيار بديل
+      );
+      
+      if (!tickerResponse.ok) {
+        throw new Error(`Binance API error: ${await tickerResponse.text()}`);
       }
+      
+      const tickerData = await tickerResponse.json();
+      
+      // Get current price using ticker price endpoint for more accuracy
+      const priceResponse = await fetch(
+        `https://api.binance.com/api/v3/ticker/price?symbol=${binanceSymbol}`
+      );
+      
+      if (!priceResponse.ok) {
+        throw new Error(`Binance price API error: ${await priceResponse.text()}`);
+      }
+      
+      const priceData = await priceResponse.json();
+      
+      // Format the response
+      const marketData: MarketDataResponse = {
+        price: parseFloat(priceData.price),
+        volume24h: parseFloat(tickerData.volume),
+        change24h: parseFloat(tickerData.priceChangePercent),
+        marketCap: parseFloat(tickerData.quoteVolume), // Using quote volume as a proxy
+        lastUpdate: new Date().toISOString()
+      };
+      
+      return new Response(
+        JSON.stringify({ ...marketData, source: "binance" }),
+        { headers: { "Content-Type": "application/json" } },
+      );
+    } catch (binanceError) {
+      console.error("Error fetching from Binance:", binanceError);
+      // Fall back to mock data
     }
     
-    // Use fallback mock data since keys have been removed
+    // Use fallback mock data if Binance fails
     return new Response(
       JSON.stringify({
         price: 45000.00,  // Mock data

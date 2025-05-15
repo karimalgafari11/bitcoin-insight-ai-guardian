@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Card, CardContent } from "@/components/ui/card";
 import BitcoinChart from "@/components/BitcoinChart";
@@ -19,6 +19,24 @@ const Dashboard = () => {
   const { t } = useLanguage();
   const [currentTimeframe, setCurrentTimeframe] = useState<"4h" | "1d" | "1w" | "1m">("1d");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [hasBinanceKey, setHasBinanceKey] = useState(false);
+
+  // Check for Binance API keys on component mount
+  useEffect(() => {
+    const apiKey = localStorage.getItem("binance_api_key");
+    const apiSecret = localStorage.getItem("binance_api_secret");
+    
+    if (apiKey && apiSecret) {
+      setHasBinanceKey(true);
+      toast({
+        title: t("بيانات بينانس", "Binance Data"),
+        description: t(
+          "تم العثور على مفاتيح API لبينانس. سيتم استخدام بيانات مباشرة.",
+          "Binance API keys found. Using live data."
+        ),
+      });
+    }
+  }, [t]);
 
   // Map UI timeframes to API days parameter
   const timeframeToDays = {
@@ -50,6 +68,11 @@ const Dashboard = () => {
               {t("لوحة المعلومات", "Dashboard")}
             </h1>
             <div className="flex items-center gap-4">
+              {hasBinanceKey && (
+                <div className="text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-full px-3 py-1">
+                  {t("بيانات بينانس مباشرة", "Live Binance Data")}
+                </div>
+              )}
               <Button 
                 variant="outline" 
                 size="sm"

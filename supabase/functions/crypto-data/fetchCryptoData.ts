@@ -3,6 +3,7 @@ import { corsHeaders } from "./cors.ts";
 import { fetchFromCoinMarketCap } from "./apis/coinMarketCap.ts";
 import { fetchFromCoinGecko } from "./apis/coinGecko.ts";
 import { fetchFromPublicApi } from "./apis/publicApis.ts";
+import { fetchFromBinance } from "./apis/binance.ts";
 import { generateFallbackData } from "./utils/mockDataGenerator.ts";
 
 /**
@@ -17,7 +18,22 @@ export async function fetchCryptoData(coinId: string, days: string, currency: st
   
   // Try to fetch data from multiple sources
   try {
-    // First try CoinMarketCap if we have an API key
+    // First try Binance API - this is our preferred data source now
+    try {
+      console.log("Attempting to fetch from Binance");
+      const data = await fetchFromBinance(coinId, days, currency);
+      console.log("Successfully fetched data from Binance!");
+      return {
+        ...data,
+        isMockData: false,
+        dataSource: "binance"
+      };
+    } catch (error) {
+      console.error("Binance fetch failed:", error.message);
+      // Continue to next source if this one fails
+    }
+    
+    // Next try CoinMarketCap if we have an API key
     if (coinMarketCapApiKey) {
       try {
         console.log("Attempting to fetch from CoinMarketCap");
