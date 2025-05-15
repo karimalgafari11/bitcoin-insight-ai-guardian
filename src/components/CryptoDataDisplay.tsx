@@ -1,13 +1,14 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCryptoData } from '@/hooks/useCryptoData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
+import { CryptoFilterOptions, DEFAULT_FILTER_OPTIONS } from '@/types/filters';
 
-// Import our new components
+// Import our components
 import CryptoSelector from './crypto/CryptoSelector';
 import CryptoDataSourceBadge from './crypto/CryptoDataSourceBadge';
 import CryptoSourceProviderBadge from './crypto/CryptoSourceProviderBadge';
@@ -25,6 +26,7 @@ const CryptoDataDisplay: React.FC<CryptoDataDisplayProps> = ({ defaultCoin = 'bi
   const [selectedCoin, setSelectedCoin] = useState(defaultCoin);
   const [timeframe, setTimeframe] = useState('7');
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [filterOptions, setFilterOptions] = useState<CryptoFilterOptions>(DEFAULT_FILTER_OPTIONS);
   
   const { 
     data, 
@@ -52,6 +54,32 @@ const CryptoDataDisplay: React.FC<CryptoDataDisplayProps> = ({ defaultCoin = 'bi
       description: t('جاري تحديث البيانات...', 'Refreshing data...'),
     });
   };
+
+  const handleFilterChange = (newFilters: CryptoFilterOptions) => {
+    setFilterOptions(newFilters);
+  };
+
+  // Apply filters to the data
+  const filteredData = React.useMemo(() => {
+    if (!data || !data.metadata) return data;
+    
+    const currentPrice = data.metadata.current_price;
+    const marketCap = data.metadata.market_cap;
+    
+    const isPriceInRange = 
+      currentPrice >= filterOptions.priceRange.min && 
+      currentPrice <= filterOptions.priceRange.max;
+      
+    const isMarketCapInRange = 
+      marketCap >= filterOptions.marketCapRange.min && 
+      marketCap <= filterOptions.marketCapRange.max;
+    
+    if (isPriceInRange && isMarketCapInRange) {
+      return data;
+    }
+    
+    return null;
+  }, [data, filterOptions]);
 
   return (
     <Card className="w-full mb-6">
@@ -85,6 +113,8 @@ const CryptoDataDisplay: React.FC<CryptoDataDisplayProps> = ({ defaultCoin = 'bi
             onCoinChange={handleCoinChange}
             selectedTimeframe={timeframe}
             onTimeframeChange={handleTimeframeChange}
+            filterOptions={filterOptions}
+            onFilterChange={handleFilterChange}
           />
         </div>
       </CardHeader>
@@ -93,9 +123,9 @@ const CryptoDataDisplay: React.FC<CryptoDataDisplayProps> = ({ defaultCoin = 'bi
           <CryptoLoadingState />
         ) : error ? (
           <CryptoErrorState error={error} />
-        ) : data && data.prices && data.prices.length > 0 ? (
+        ) : filteredData && filteredData.prices && filteredData.prices.length > 0 ? (
           <CryptoDisplay
-            data={data}
+            data={filteredData}
             selectedCoin={selectedCoin}
             dataSource={dataSource}
             lastUpdated={lastUpdated}
