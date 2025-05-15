@@ -12,8 +12,11 @@ import {
 } from "recharts";
 import { useCryptoData } from "@/hooks/useCryptoData";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Loader2 } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type BitcoinChartProps = {
   timeframe: string;
@@ -21,9 +24,11 @@ type BitcoinChartProps = {
 };
 
 const BitcoinChart = ({ timeframe, className }: BitcoinChartProps) => {
+  const { t } = useLanguage();
   const [chartHeight, setChartHeight] = useState(400);
   const containerRef = useRef<HTMLDivElement>(null);
   const [percentChange, setPercentChange] = useState(0);
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   
   // Convert timeframe to days for API
   const getDaysFromTimeframe = (timeframe: string): string => {
@@ -37,7 +42,7 @@ const BitcoinChart = ({ timeframe, className }: BitcoinChartProps) => {
   };
   
   const days = getDaysFromTimeframe(timeframe);
-  const { data, loading, error } = useCryptoData("bitcoin", days);
+  const { data, loading, error, refreshData } = useCryptoData("bitcoin", days);
   
   useEffect(() => {
     if (!data || !data.prices || data.prices.length < 2) return;
@@ -80,6 +85,15 @@ const BitcoinChart = ({ timeframe, className }: BitcoinChartProps) => {
   };
   
   const isPositiveChange = percentChange >= 0;
+  
+  const handleRefresh = () => {
+    refreshData();
+    setLastRefresh(new Date());
+    toast({
+      title: t('تحديث البيانات', 'Data Refresh'),
+      description: t('جاري تحديث البيانات...', 'Refreshing data...'),
+    });
+  };
   
   if (loading) {
     return (
@@ -143,8 +157,18 @@ const BitcoinChart = ({ timeframe, className }: BitcoinChartProps) => {
     <Card className={`${className} overflow-hidden border-zinc-800 bg-chart-bg`}>
       <div className="flex items-center justify-between p-4 border-b border-zinc-800">
         <div className="font-medium text-lg">BTC/USD {timeframe}</div>
-        <div className={`flex items-center ${isPositiveChange ? 'text-bitcoin-green' : 'text-bitcoin-red'}`}>
-          {isPositiveChange ? '+' : ''}{percentChange}%
+        <div className="flex items-center gap-2">
+          <div className={`${isPositiveChange ? 'text-bitcoin-green' : 'text-bitcoin-red'}`}>
+            {isPositiveChange ? '+' : ''}{percentChange}%
+          </div>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleRefresh}
+            title={t('تحديث البيانات', 'Refresh Data')}
+          >
+            <RefreshCw className="h-4 w-4" />
+          </Button>
         </div>
       </div>
       
@@ -184,6 +208,10 @@ const BitcoinChart = ({ timeframe, className }: BitcoinChartProps) => {
             />
           </AreaChart>
         </ResponsiveContainer>
+        
+        <div className="p-2 text-xs text-muted-foreground text-right">
+          {t('آخر تحديث', 'Last refresh')}: {lastRefresh.toLocaleTimeString()}
+        </div>
       </CardContent>
     </Card>
   );

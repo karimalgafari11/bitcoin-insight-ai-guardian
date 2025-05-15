@@ -12,7 +12,7 @@ export async function fetchCryptoData(coinId: string, days: string, currency: st
   const coinmarketcapApiKey = Deno.env.get("Coinmarketcup_api_key") || "";
   
   if (!coinmarketcapApiKey) {
-    console.warn("CoinMarketCap API key not found, using mock data instead");
+    console.error("CoinMarketCap API key not found, using mock data instead");
     // Return mock data when API key is not available
     return generateMockData(coinId, days, currency);
   }
@@ -21,6 +21,8 @@ export async function fetchCryptoData(coinId: string, days: string, currency: st
   const interval = intervalMap[days] || '1d';
   
   try {
+    console.log(`Fetching real data for ${symbol} with ${interval} interval`);
+    
     // Get current price data
     const quoteData = await fetchCurrentPriceData(symbol, currency, coinmarketcapApiKey);
     
@@ -30,12 +32,26 @@ export async function fetchCryptoData(coinId: string, days: string, currency: st
     // Get historical OHLCV data
     const historicalData = await fetchHistoricalData(cmcCoinId, interval, days, currency, coinmarketcapApiKey);
     
+    console.log("Successfully fetched CoinMarketCap data");
+    
     // Format the data
     return formatHistoricalData(historicalData, quoteData, currency);
   } catch (error) {
     console.error(`Error fetching data from CoinMarketCap: ${error.message}`);
-    // Return mock data as a fallback
-    return generateMockData(coinId, days, currency);
+    console.error("Stack trace:", error.stack);
+    
+    // Try fallback data source if primary fails
+    try {
+      console.log("Attempting to fetch from fallback source");
+      const fallbackData = await fetchFallbackData(coinId, days, currency);
+      return fallbackData;
+    } catch (fallbackError) {
+      console.error(`Fallback source failed: ${fallbackError.message}`);
+      
+      // Return mock data as a last resort
+      console.log("Using mock data as fallback");
+      return generateMockData(coinId, days, currency);
+    }
   }
 }
 
@@ -114,4 +130,83 @@ async function fetchHistoricalData(coinId: number, interval: string, days: strin
   }
   
   return await historicalResponse.json();
+}
+
+/**
+ * Fallback data source using CoinGecko public API
+ */
+async function fetchFallbackData(coinId: string, days: string, currency: string) {
+  // Check if we have a CoinGecko API key for higher rate limits
+  const coingeckoApiKey = Deno.env.get("Coingecko_api_key");
+  const baseUrl = "https://api.coingecko.com/api/v3";
+  
+  // Map coin IDs to CoinGecko format if needed
+  const geckoId = mapToGeckoId(coinId);
+  
+  // Get current price data
+  let pricesUrl = `${baseUrl}/coins/${geckoId}/market_chart?vs_currency=${currency}&days=${days}`;
+  
+  // Add API key if available
+  if (coingeckoApiKey) {
+    pricesUrl += `&x_cg_pro_api_key=${coingeckoApiKey}`;
+  }
+  
+  console.log(`Fetching from CoinGecko: ${pricesUrl}`);
+  
+  const pricesResponse = await fetch(pricesUrl);
+  
+  if (!pricesResponse.ok) {
+    throw new Error(`CoinGecko API error: ${pricesResponse.status}`);
+  }
+  
+  const pricesData = await pricesResponse.json();
+  
+  // Get additional metadata
+  let infoUrl = `${baseUrl}/coins/${geckoId}?localization=false&tickers=false&community_data=false&developer_data=false`;
+  
+  // Add API key if available
+  if (coingeckoApiKey) {
+    infoUrl += `&x_cg_pro_api_key=${coingeckoApiKey}`;
+  }
+  
+  const infoResponse = await fetch(infoUrl);
+  
+  if (!infoResponse.ok) {
+    throw new Error(`CoinGecko Info API error: ${infoResponse.status}`);
+  }
+  
+  const coinInfo = await infoResponse.json();
+  
+  // Format data to match our expected structure
+  return {
+    prices: pricesData.prices,
+    market_caps: pricesData.market_caps,
+    total_volumes: pricesData.total_volumes,
+    metadata: {
+      name: coinInfo.name,
+      symbol: coinInfo.symbol.toUpperCase(),
+      current_price: coinInfo.market_data.current_price[currency],
+      market_cap: coinInfo.market_data.market_cap[currency],
+      volume_24h: coinInfo.market_data.total_volume[currency],
+      percent_change_24h: coinInfo.market_data.price_change_percentage_24h,
+      percent_change_7d: coinInfo.market_data.price_change_percentage_7d,
+      last_updated: coinInfo.market_data.last_updated,
+    },
+  };
+}
+
+/**
+ * Map coin IDs to CoinGecko format
+ */
+function mapToGeckoId(coinId: string): string {
+  const mapping: Record<string, string> = {
+    'bitcoin': 'bitcoin',
+    'ethereum': 'ethereum',
+    'binancecoin': 'binancecoin',
+    'ripple': 'ripple',
+    'cardano': 'cardano',
+    'solana': 'solana',
+  };
+  
+  return mapping[coinId] || coinId;
 }

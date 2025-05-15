@@ -3,6 +3,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useCryptoData } from "@/hooks/useCryptoData";
 import { Skeleton } from "@/components/ui/skeleton";
+import { RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/use-toast";
+import { useState } from "react";
 
 type BitcoinStatsProps = {
   className?: string;
@@ -10,7 +14,8 @@ type BitcoinStatsProps = {
 
 const BitcoinStats = ({ className }: BitcoinStatsProps) => {
   const { t } = useLanguage();
-  const { data, loading, error } = useCryptoData("bitcoin", "1");
+  const { data, loading, error, refreshData } = useCryptoData("bitcoin", "1");
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   
   // Format currency values
   const formatCurrency = (value?: number) => {
@@ -41,6 +46,15 @@ const BitcoinStats = ({ className }: BitcoinStatsProps) => {
   const formatPercent = (value?: number) => {
     if (value === undefined) return "-";
     return `${value > 0 ? '+' : ''}${value.toFixed(2)}%`;
+  };
+  
+  const handleRefresh = () => {
+    refreshData();
+    setLastRefresh(new Date());
+    toast({
+      title: t('تحديث البيانات', 'Data Refresh'),
+      description: t('جاري تحديث البيانات...', 'Refreshing data...'),
+    });
   };
   
   if (loading) {
@@ -100,21 +114,39 @@ const BitcoinStats = ({ className }: BitcoinStatsProps) => {
 
   return (
     <Card className={`${className} border-zinc-800`}>
-      <CardContent className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 p-4">
-        {stats.map((stat) => (
-          <div key={stat.titleEn} className="flex flex-col">
-            <span className="text-sm text-muted-foreground mb-1">{t(stat.titleAr, stat.titleEn)}</span>
-            <span className={
-              stat.positive !== undefined
-                ? stat.positive
-                  ? "text-bitcoin-green"
-                  : "text-bitcoin-red"
-                : ""
-            }>
-              {stat.value}
-            </span>
-          </div>
-        ))}
+      <CardContent className="p-4">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="font-medium">{t('إحصائيات البيتكوين', 'Bitcoin Stats')}</h3>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleRefresh}
+            title={t('تحديث البيانات', 'Refresh Data')}
+          >
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          {stats.map((stat) => (
+            <div key={stat.titleEn} className="flex flex-col">
+              <span className="text-sm text-muted-foreground mb-1">{t(stat.titleAr, stat.titleEn)}</span>
+              <span className={
+                stat.positive !== undefined
+                  ? stat.positive
+                    ? "text-bitcoin-green"
+                    : "text-bitcoin-red"
+                  : ""
+              }>
+                {stat.value}
+              </span>
+            </div>
+          ))}
+        </div>
+        
+        <div className="mt-4 text-xs text-muted-foreground text-right">
+          {t('آخر تحديث', 'Last refresh')}: {lastRefresh.toLocaleTimeString()}
+        </div>
       </CardContent>
     </Card>
   );

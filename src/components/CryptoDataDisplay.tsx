@@ -3,13 +3,15 @@ import React, { useState } from 'react';
 import { useCryptoData } from '@/hooks/useCryptoData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Loader2 } from 'lucide-react';
+import { Loader2, RefreshCw } from 'lucide-react';
 import { getSymbolName, formatData } from '@/utils/cryptoUtils';
+import { Button } from '@/components/ui/button';
 import CryptoSelector from './crypto/CryptoSelector';
 import CryptoPriceHeader from './crypto/CryptoPriceHeader';
 import CryptoMarketMetrics from './crypto/CryptoMarketMetrics';
 import CryptoPriceChart from './crypto/CryptoPriceChart';
 import CryptoDisclaimer from './crypto/CryptoDisclaimer';
+import { toast } from '@/components/ui/use-toast';
 
 interface CryptoDataDisplayProps {
   defaultCoin?: string;
@@ -19,8 +21,9 @@ const CryptoDataDisplay: React.FC<CryptoDataDisplayProps> = ({ defaultCoin = 'bi
   const { t } = useLanguage();
   const [selectedCoin, setSelectedCoin] = useState(defaultCoin);
   const [timeframe, setTimeframe] = useState('7');
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   
-  const { data, loading, error } = useCryptoData(selectedCoin, timeframe);
+  const { data, loading, error, refreshData } = useCryptoData(selectedCoin, timeframe);
 
   const handleCoinChange = (value: string) => {
     setSelectedCoin(value);
@@ -29,17 +32,38 @@ const CryptoDataDisplay: React.FC<CryptoDataDisplayProps> = ({ defaultCoin = 'bi
   const handleTimeframeChange = (value: string) => {
     setTimeframe(value);
   };
+  
+  const handleRefresh = () => {
+    refreshData();
+    setLastRefresh(new Date());
+    toast({
+      title: t('تحديث البيانات', 'Data Refresh'),
+      description: t('جاري تحديث البيانات...', 'Refreshing data...'),
+    });
+  };
 
   return (
     <Card className="w-full mb-6">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle>{t('بيانات العملة الرقمية', 'Cryptocurrency Data')}</CardTitle>
-        <CryptoSelector 
-          selectedCoin={selectedCoin}
-          onCoinChange={handleCoinChange}
-          selectedTimeframe={timeframe}
-          onTimeframeChange={handleTimeframeChange}
-        />
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="icon" 
+            onClick={handleRefresh} 
+            disabled={loading}
+            title={t('تحديث البيانات', 'Refresh Data')}
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          </Button>
+          
+          <CryptoSelector 
+            selectedCoin={selectedCoin}
+            onCoinChange={handleCoinChange}
+            selectedTimeframe={timeframe}
+            onTimeframeChange={handleTimeframeChange}
+          />
+        </div>
       </CardHeader>
       <CardContent>
         {loading ? (
@@ -72,6 +96,11 @@ const CryptoDataDisplay: React.FC<CryptoDataDisplayProps> = ({ defaultCoin = 'bi
             </div>
             
             <CryptoPriceChart priceData={formatData(data.prices)} />
+            
+            <div className="mt-4 text-xs text-muted-foreground text-right">
+              {t('آخر تحديث', 'Last refresh')}: {lastRefresh.toLocaleTimeString()}
+            </div>
+            
             <CryptoDisclaimer />
           </div>
         ) : (
