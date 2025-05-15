@@ -25,6 +25,7 @@ const queryClient = new QueryClient({
     queries: {
       retry: 1,
       refetchOnWindowFocus: false,
+      staleTime: 5 * 60 * 1000, // 5 minutes
     },
   },
 });
@@ -35,7 +36,7 @@ const ProtectedRoute = () => {
   
   // Show nothing while checking authentication
   if (loading) {
-    return <div className="flex items-center justify-center h-screen">جاري التحميل...</div>;
+    return null; // المكون الرئيسي سيعرض شاشة التحميل
   }
   
   // Redirect to auth page if not logged in
@@ -52,7 +53,7 @@ const AuthRoute = () => {
   const { user, loading } = useAuth();
   
   if (loading) {
-    return <div className="flex items-center justify-center h-screen">جاري التحميل...</div>;
+    return null; // المكون الرئيسي سيعرض شاشة التحميل
   }
   
   if (user) {
@@ -86,8 +87,8 @@ const AppRoutes = () => (
 
 // Fix: Create QueryClient instance separately from component rendering
 const App = () => (
-  <BrowserRouter>
-    <QueryClientProvider client={queryClient}>
+  <QueryClientProvider client={queryClient}>
+    <BrowserRouter>
       <TooltipProvider>
         <LanguageProvider>
           <AuthProvider>
@@ -99,8 +100,8 @@ const App = () => (
           </AuthProvider>
         </LanguageProvider>
       </TooltipProvider>
-    </QueryClientProvider>
-  </BrowserRouter>
+    </BrowserRouter>
+  </QueryClientProvider>
 );
 
 export default App;

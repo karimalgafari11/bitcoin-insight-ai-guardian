@@ -68,34 +68,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Set up the auth state listener
+    // تم تحسين إدارة حالة الجلسة لتجنب التحديثات المتكررة
+    
+    // إنشاء استمع لحالة المصادقة أولاً
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
+      (event, currentSession) => {
+        // استخدام دالة مساعدة للتحديث لمنع التحديثات غير الضرورية
+        if (JSON.stringify(currentSession) !== JSON.stringify(session)) {
+          console.log("Auth state changed:", event);
+          setSession(currentSession);
+          setUser(currentSession?.user ?? null);
+        }
+        
+        // تجنب التغيير المتكرر للمسار
+        if (event === 'SIGNED_IN' && !session) {
+          setTimeout(() => navigate('/'), 100);
+        } else if (event === 'SIGNED_OUT' && session) {
+          setTimeout(() => navigate('/auth'), 100);
+        }
 
-        if (event === 'SIGNED_IN') {
-          // User has signed in, navigate to dashboard
-          navigate('/');
-        } else if (event === 'SIGNED_OUT') {
-          // User has signed out, navigate to auth page
-          navigate('/auth');
+        // تأكد من أن حالة التحميل تتغير فقط مرة واحدة
+        if (loading) {
+          setLoading(false);
         }
       }
     );
 
-    // Get the initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    // جلب حالة الجلسة الأولية
+    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+      console.log("Initial session:", initialSession ? "found" : "none");
+      setSession(initialSession);
+      setUser(initialSession?.user ?? null);
       setLoading(false);
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const signUp = async (email: string, password: string, username: string) => {
     try {
@@ -202,6 +213,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw error;
     }
   };
+
+  // تحسين استراتيجية التحميل
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-background">
+        <div className="text-center space-y-4">
+          <div className="animate-pulse flex space-x-4 justify-center">
+            <div className="rounded-full bg-primary h-12 w-12 opacity-75"></div>
+            <div className="rounded-full bg-primary h-12 w-12 opacity-50"></div>
+            <div className="rounded-full bg-primary h-12 w-12 opacity-25"></div>
+          </div>
+          <p className="text-muted-foreground">جاري تحميل BitSight...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <AuthContext.Provider
