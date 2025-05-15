@@ -8,6 +8,7 @@ import { useCryptoDataTimers } from './useCryptoDataTimers';
 import { useCryptoDataRefresh } from './useCryptoDataRefresh';
 import { useCryptoRealtimeChannel } from './useCryptoRealtimeChannel';
 import { useCryptoPolling } from './useCryptoPolling';
+import { useCryptoDataFetch } from './useCryptoDataFetch';
 import { setupRealtimeChannel, cleanupChannel } from '@/utils/crypto/cryptoRealtimeChannel';
 
 // Track mounted instances to optimize network requests
