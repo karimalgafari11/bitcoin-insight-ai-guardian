@@ -91,7 +91,7 @@ export const TradeEntryForm = ({
 
       // تحويل التواريخ من سلاسل نصية إلى كائنات Date
       const formattedData = {
-        ...data,
+        ...data
       };
 
       if (isEditing && tradeId) {

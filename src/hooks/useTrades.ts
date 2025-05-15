@@ -56,7 +56,7 @@ export const useTrades = () => {
         return trade;
       });
       
-      setTrades(processedTrades);
+      setTrades(processedTrades as Trade[]);
     } catch (err: any) {
       console.error("Error fetching trades:", err);
       setError(err.message);
@@ -84,7 +84,7 @@ export const useTrades = () => {
         .single();
 
       if (error) throw error;
-      return data;
+      return data as Trade;
     } catch (err: any) {
       console.error("Error fetching trade:", err);
       toast({
