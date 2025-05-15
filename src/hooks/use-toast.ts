@@ -1,3 +1,5 @@
+
+// This is a centralized toast hook that can be used throughout the application
 import * as React from "react";
 
 import type { ToastActionElement, ToastProps } from "@/components/ui/toast";
@@ -136,6 +138,10 @@ function dispatch(action: Action) {
 
 type Toast = Omit<ToasterToast, "id">;
 
+/**
+ * يستخدم لعرض رسائل منبثقة للمستخدم
+ * مع خيارات مثل النوع (نجاح، تحذير، خطأ)
+ */
 function toast({ ...props }: Toast) {
   const id = genId();
 
