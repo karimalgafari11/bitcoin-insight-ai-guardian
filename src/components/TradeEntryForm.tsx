@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -88,10 +87,18 @@ export const TradeEntryForm = ({
   const onSubmit = async (data: z.infer<typeof tradeFormSchema>) => {
     try {
       setIsSubmitting(true);
+      
+      // الحصول على معرف المستخدم الحالي
+      const { data: authData } = await supabase.auth.getUser();
+      
+      if (!authData?.user) {
+        throw new Error("يجب تسجيل الدخول لإضافة صفقات");
+      }
 
-      // تحويل التواريخ من سلاسل نصية إلى كائنات Date
+      // تجهيز البيانات للإرسال مع التأكد من وجود جميع الحقول المطلوبة
       const formattedData = {
-        ...data
+        ...data,
+        user_id: authData.user.id
       };
 
       if (isEditing && tradeId) {

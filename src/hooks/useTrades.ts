@@ -16,6 +16,15 @@ export const useTrades = () => {
       setLoading(true);
       setError(null);
 
+      // Get the current user
+      const { data: authData } = await supabase.auth.getUser();
+      
+      if (!authData?.user) {
+        setTrades([]);
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from("trading_entries")
         .select("*")

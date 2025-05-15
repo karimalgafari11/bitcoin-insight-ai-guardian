@@ -21,6 +21,7 @@ export interface Trade {
   screenshot_url?: string;
   created_at: string;
   updated_at: string;
+  user_id: string;
 }
 
 export interface TradeFormData {
