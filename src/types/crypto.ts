@@ -29,4 +29,5 @@ export interface UseCryptoDataResult {
   isRealtime: boolean;
   dataSource: string;
   lastUpdated: string | null;
+  lastRefresh: Date;
 }

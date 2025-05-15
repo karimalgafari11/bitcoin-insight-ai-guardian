@@ -76,10 +76,10 @@ const CryptoStatusWrapper: React.FC<CryptoStatusWrapperProps> = ({
   if (isStaleData) {
     return (
       <>
-        <Alert variant="warning" className="mb-4">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>{t("بيانات غير محدثة", "Stale Data")}</AlertTitle>
-          <AlertDescription>
+        <Alert className="mb-4 border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20">
+          <AlertTriangle className="h-4 w-4 text-yellow-500" />
+          <AlertTitle className="text-yellow-700 dark:text-yellow-400">{t("بيانات غير محدثة", "Stale Data")}</AlertTitle>
+          <AlertDescription className="text-yellow-600 dark:text-yellow-300">
             {t(
               "نعرض بيانات مخزنة مؤقتًا. انقر على تحديث للحصول على أحدث البيانات.",
               "Displaying cached data. Click refresh to get the latest data."
@@ -89,7 +89,7 @@ const CryptoStatusWrapper: React.FC<CryptoStatusWrapperProps> = ({
                 variant="outline" 
                 size="sm"
                 onClick={handleRefresh}
-                className="gap-2 ml-2 mt-2"
+                className="gap-2 ml-2 mt-2 border-yellow-500 text-yellow-700 hover:bg-yellow-100 dark:hover:bg-yellow-900/40"
               >
                 <RefreshCcw className="h-3 w-3" />
                 {t("تحديث", "Refresh")}
@@ -106,10 +106,10 @@ const CryptoStatusWrapper: React.FC<CryptoStatusWrapperProps> = ({
   if (dataSource === 'mock') {
     return (
       <>
-        <Alert variant="warning" className="mb-4">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>{t("بيانات تجريبية", "Mock Data")}</AlertTitle>
-          <AlertDescription>
+        <Alert className="mb-4 border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20">
+          <AlertTriangle className="h-4 w-4 text-yellow-500" />
+          <AlertTitle className="text-yellow-700 dark:text-yellow-400">{t("بيانات تجريبية", "Mock Data")}</AlertTitle>
+          <AlertDescription className="text-yellow-600 dark:text-yellow-300">
             {t(
               "نعرض بيانات تجريبية بسبب عدم إمكانية الوصول لمصادر البيانات الحقيقية.",
               "Displaying mock data because real data sources are unavailable."
@@ -119,7 +119,7 @@ const CryptoStatusWrapper: React.FC<CryptoStatusWrapperProps> = ({
                 variant="outline" 
                 size="sm"
                 onClick={handleRefresh}
-                className="gap-2 ml-2 mt-2"
+                className="gap-2 ml-2 mt-2 border-yellow-500 text-yellow-700 hover:bg-yellow-100 dark:hover:bg-yellow-900/40"
               >
                 <RefreshCcw className="h-3 w-3" />
                 {t("إعادة المحاولة", "Try again")}

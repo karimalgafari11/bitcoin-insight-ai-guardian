@@ -42,18 +42,15 @@ export async function fetchCryptoData(
     
     // Set up the request timeout with AbortController
     const timeoutMs = 15000; // 15-second timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     
-    // Use the crypto-cache function with custom timeout handling
+    // Use the crypto-cache function
     const functionPromise = supabase.functions.invoke('crypto-cache', {
       body: {
         coinId,
         days,
         currency,
         forceRefresh: force
-      },
-      signal: controller.signal,
+      }
     });
     
     // Race the function promise against a timeout
@@ -65,7 +62,7 @@ export async function fetchCryptoData(
           error: { message: 'Request timed out after 15 seconds' }
         }), timeoutMs)
       )
-    ]).finally(() => clearTimeout(timeoutId));
+    ]);
 
     if (responseError) {
       console.error('Supabase function error:', responseError);
