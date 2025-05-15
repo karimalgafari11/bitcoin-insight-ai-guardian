@@ -108,104 +108,106 @@ const DashboardChartPanel = () => {
       </CardHeader>
       <CardContent>
         <div className="h-[350px] w-full">
-          <TabsContent value="price" className="mt-0 h-full">
-            <ChartContainer config={chartConfig}>
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={priceData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="var(--color-market)" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="var(--color-market)" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip 
-                    formatter={(value: number) => [`$${value.toLocaleString()}`, t('قيمة', 'Value')]}
-                    labelFormatter={(label) => `${label}`}
-                    contentStyle={{ 
-                      backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                      borderRadius: '6px',
-                      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                      border: 'none'
-                    }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="value"
-                    stroke="var(--color-market)"
-                    fillOpacity={1}
-                    fill="url(#colorValue)"
-                    strokeWidth={2}
-                    activeDot={{ r: 6, strokeWidth: 0 }}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </TabsContent>
-          
-          <TabsContent value="volume" className="mt-0 h-full">
-            <ChartContainer config={chartConfig}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={volumeData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip 
-                    formatter={(value: number) => [`$${value.toLocaleString()}M`, '']}
-                    contentStyle={{ 
-                      backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                      borderRadius: '6px',
-                      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                      border: 'none'
-                    }}
-                  />
-                  <Legend />
-                  <Bar dataKey="btc" name="Bitcoin" fill="var(--color-btc)" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="eth" name="Ethereum" fill="var(--color-eth)" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="sol" name="Solana" fill="var(--color-sol)" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </TabsContent>
-          
-          <TabsContent value="marketcap" className="mt-0 h-full">
-            <ChartContainer config={chartConfig}>
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={marketCapData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorMarketCap" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="var(--color-btc)" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="var(--color-btc)" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip 
-                    formatter={(value: number) => [`$${(value/1000).toLocaleString()}B`, t('القيمة السوقية', 'Market Cap')]}
-                    labelFormatter={(label) => `${label}`}
-                    contentStyle={{ 
-                      backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                      borderRadius: '6px',
-                      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                      border: 'none'
-                    }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="value"
-                    stroke="var(--color-btc)"
-                    fillOpacity={1}
-                    fill="url(#colorMarketCap)"
-                    strokeWidth={2}
-                    activeDot={{ r: 6, strokeWidth: 0 }}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </TabsContent>
+          <Tabs value={activeTab}>
+            <TabsContent value="price" className="mt-0 h-full">
+              <ChartContainer config={chartConfig}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={priceData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="var(--color-market)" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="var(--color-market)" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip 
+                      formatter={(value: number) => [`$${value.toLocaleString()}`, t('قيمة', 'Value')]}
+                      labelFormatter={(label) => `${label}`}
+                      contentStyle={{ 
+                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                        borderRadius: '6px',
+                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                        border: 'none'
+                      }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="value"
+                      stroke="var(--color-market)"
+                      fillOpacity={1}
+                      fill="url(#colorValue)"
+                      strokeWidth={2}
+                      activeDot={{ r: 6, strokeWidth: 0 }}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </TabsContent>
+            
+            <TabsContent value="volume" className="mt-0 h-full">
+              <ChartContainer config={chartConfig}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={volumeData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip 
+                      formatter={(value: number) => [`$${value.toLocaleString()}M`, '']}
+                      contentStyle={{ 
+                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                        borderRadius: '6px',
+                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                        border: 'none'
+                      }}
+                    />
+                    <Legend />
+                    <Bar dataKey="btc" name="Bitcoin" fill="var(--color-btc)" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="eth" name="Ethereum" fill="var(--color-eth)" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="sol" name="Solana" fill="var(--color-sol)" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </TabsContent>
+            
+            <TabsContent value="marketcap" className="mt-0 h-full">
+              <ChartContainer config={chartConfig}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={marketCapData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorMarketCap" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="var(--color-btc)" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="var(--color-btc)" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip 
+                      formatter={(value: number) => [`$${(value/1000).toLocaleString()}B`, t('القيمة السوقية', 'Market Cap')]}
+                      labelFormatter={(label) => `${label}`}
+                      contentStyle={{ 
+                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                        borderRadius: '6px',
+                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                        border: 'none'
+                      }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="value"
+                      stroke="var(--color-btc)"
+                      fillOpacity={1}
+                      fill="url(#colorMarketCap)"
+                      strokeWidth={2}
+                      activeDot={{ r: 6, strokeWidth: 0 }}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </TabsContent>
+          </Tabs>
         </div>
       </CardContent>
     </Card>
