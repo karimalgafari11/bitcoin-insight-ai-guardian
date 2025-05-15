@@ -7,52 +7,79 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Separator } from "@/components/ui/separator";
+import { toast } from "@/components/ui/use-toast";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+
+// تعريف مخططات التحقق
+const loginSchema = z.object({
+  email: z.string().email(
+    { message: "يرجى إدخال بريد إلكتروني صحيح" }
+  ),
+  password: z.string().min(6, { message: "كلمة المرور يجب أن تتكون من 6 أحرف على الأقل" }),
+});
+
+const registerSchema = z.object({
+  username: z.string().min(3, { message: "اسم المستخدم يجب أن يتكون من 3 أحرف على الأقل" }),
+  email: z.string().email({ message: "يرجى إدخال بريد إلكتروني صحيح" }),
+  password: z.string().min(6, { message: "كلمة المرور يجب أن تتكون من 6 أحرف على الأقل" }),
+  confirmPassword: z.string().min(6, { message: "كلمة المرور يجب أن تتكون من 6 أحرف على الأقل" }),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "كلمات المرور غير متطابقة",
+  path: ["confirmPassword"],
+});
+
+type LoginFormValues = z.infer<typeof loginSchema>;
+type RegisterFormValues = z.infer<typeof registerSchema>;
 
 const Auth = () => {
   const { t } = useLanguage();
-  const [isLoading, setIsLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   
-  // Login form state
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
+  // نماذج React Hook Form
+  const loginForm = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
   
-  // Register form state
-  const [registerEmail, setRegisterEmail] = useState("");
-  const [registerPassword, setRegisterPassword] = useState("");
-  const [registerUsername, setRegisterUsername] = useState("");
-  const [registerConfirmPassword, setRegisterConfirmPassword] = useState("");
-
+  const registerForm = useForm<RegisterFormValues>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      username: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+    },
+  });
+  
   const { signIn, signUp } = useAuth();
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    
+  const handleLogin = async (values: LoginFormValues) => {
+    setAuthError(null);
     try {
-      await signIn(loginEmail, loginPassword);
-    } catch (error) {
+      await signIn(values.email, values.password);
+    } catch (error: any) {
       console.error("Login error:", error);
-    } finally {
-      setIsLoading(false);
+      setAuthError(error.message);
     }
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (registerPassword !== registerConfirmPassword) {
-      return; // Passwords don't match
-    }
-    
-    setIsLoading(true);
-    
+  const handleRegister = async (values: RegisterFormValues) => {
+    setAuthError(null);
     try {
-      await signUp(registerEmail, registerPassword, registerUsername);
-    } catch (error) {
+      await signUp(values.email, values.password, values.username);
+    } catch (error: any) {
       console.error("Registration error:", error);
-    } finally {
-      setIsLoading(false);
+      setAuthError(error.message);
     }
   };
 
@@ -70,6 +97,15 @@ const Auth = () => {
             <TabsTrigger value="register">{t("إنشاء حساب", "Register")}</TabsTrigger>
           </TabsList>
           
+          {authError && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                {authError}
+              </AlertDescription>
+            </Alert>
+          )}
+          
           <TabsContent value="login">
             <Card>
               <CardHeader>
@@ -78,36 +114,58 @@ const Auth = () => {
                   {t("قم بتسجيل الدخول للوصول إلى لوحة التحكم الخاصة بك", "Sign in to access your dashboard")}
                 </CardDescription>
               </CardHeader>
-              <form onSubmit={handleLogin}>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">{t("البريد الإلكتروني", "Email")}</Label>
-                    <Input 
-                      id="email"
-                      type="email"
-                      placeholder="name@example.com"
-                      value={loginEmail}
-                      onChange={(e) => setLoginEmail(e.target.value)}
-                      required
+              <Form {...loginForm}>
+                <form onSubmit={loginForm.handleSubmit(handleLogin)}>
+                  <CardContent className="space-y-4">
+                    <FormField
+                      control={loginForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t("البريد الإلكتروني", "Email")}</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="name@example.com"
+                              type="email"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password">{t("كلمة المرور", "Password")}</Label>
-                    <Input 
-                      id="password" 
-                      type="password"
-                      value={loginPassword}
-                      onChange={(e) => setLoginPassword(e.target.value)}
-                      required 
+                    
+                    <FormField
+                      control={loginForm.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t("كلمة المرور", "Password")}</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="password"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? t("جاري تسجيل الدخول...", "Logging in...") : t("تسجيل الدخول", "Login")}
-                  </Button>
-                </CardFooter>
-              </form>
+                  </CardContent>
+                  <CardFooter>
+                    <Button 
+                      type="submit" 
+                      className="w-full" 
+                      disabled={loginForm.formState.isSubmitting}
+                    >
+                      {loginForm.formState.isSubmitting
+                        ? t("جاري تسجيل الدخول...", "Logging in...")
+                        : t("تسجيل الدخول", "Login")
+                      }
+                    </Button>
+                  </CardFooter>
+                </form>
+              </Form>
             </Card>
           </TabsContent>
 
@@ -119,55 +177,98 @@ const Auth = () => {
                   {t("أنشئ حسابك للوصول إلى تحليلات العملات الرقمية", "Create your account to access crypto analytics")}
                 </CardDescription>
               </CardHeader>
-              <form onSubmit={handleRegister}>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="register-username">{t("اسم المستخدم", "Username")}</Label>
-                    <Input 
-                      id="register-username"
-                      value={registerUsername}
-                      onChange={(e) => setRegisterUsername(e.target.value)}
-                      required
+              <Form {...registerForm}>
+                <form onSubmit={registerForm.handleSubmit(handleRegister)}>
+                  <CardContent className="space-y-4">
+                    <FormField
+                      control={registerForm.control}
+                      name="username"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t("اسم المستخدم", "Username")}</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="register-email">{t("البريد الإلكتروني", "Email")}</Label>
-                    <Input 
-                      id="register-email"
-                      type="email"
-                      placeholder="name@example.com"
-                      value={registerEmail}
-                      onChange={(e) => setRegisterEmail(e.target.value)}
-                      required
+                    
+                    <FormField
+                      control={registerForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t("البريد الإلكتروني", "Email")}</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="email"
+                              placeholder="name@example.com"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="register-password">{t("كلمة المرور", "Password")}</Label>
-                    <Input 
-                      id="register-password" 
-                      type="password"
-                      value={registerPassword}
-                      onChange={(e) => setRegisterPassword(e.target.value)}
-                      required 
+                    
+                    <FormField
+                      control={registerForm.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t("كلمة المرور", "Password")}</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="password"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="register-confirm-password">{t("تأكيد كلمة المرور", "Confirm Password")}</Label>
-                    <Input 
-                      id="register-confirm-password" 
-                      type="password"
-                      value={registerConfirmPassword}
-                      onChange={(e) => setRegisterConfirmPassword(e.target.value)}
-                      required 
+                    
+                    <FormField
+                      control={registerForm.control}
+                      name="confirmPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t("تأكيد كلمة المرور", "Confirm Password")}</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="password"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? t("جاري إنشاء الحساب...", "Creating account...") : t("إنشاء حساب", "Register")}
-                  </Button>
-                </CardFooter>
-              </form>
+                    
+                    <Separator className="my-2" />
+                    
+                    <p className="text-sm text-muted-foreground">
+                      {t(
+                        "بإنشاء حساب، فإنك توافق على شروط الخدمة وسياسة الخصوصية الخاصة بنا",
+                        "By creating an account, you agree to our Terms of Service and Privacy Policy"
+                      )}
+                    </p>
+                  </CardContent>
+                  <CardFooter>
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      disabled={registerForm.formState.isSubmitting}
+                    >
+                      {registerForm.formState.isSubmitting
+                        ? t("جاري إنشاء الحساب...", "Creating account...")
+                        : t("إنشاء حساب", "Register")
+                      }
+                    </Button>
+                  </CardFooter>
+                </form>
+              </Form>
             </Card>
           </TabsContent>
         </Tabs>
