@@ -53,12 +53,13 @@ export const SidebarMenuButton = React.forwardRef<
     const { isMobile, state } = useSidebar();
 
     const handleClick = (event: React.MouseEvent<HTMLElement>) => {
+      // Prevent event from bubbling up to parent elements
+      event.stopPropagation();
+      
       // If it's a Link component from react-router-dom (which sets an onClick handler),
       // we should let it handle the navigation without interference
       if (onClick) {
-        // Cast the event to any to bypass TypeScript's strict type checking
-        // This is necessary because the onClick could be from various element types
-        // when using the asChild prop
+        // Use type assertion for TypeScript compatibility with different element types
         onClick(event as unknown as React.MouseEvent<HTMLButtonElement>);
       }
     };

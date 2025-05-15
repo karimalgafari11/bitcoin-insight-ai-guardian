@@ -86,6 +86,11 @@ export function AppSidebar() {
     }
   ];
 
+  // Ensure we're comparing against the exact current path
+  const isActivePath = (path: string) => {
+    return location.pathname === path;
+  };
+
   return (
     <Sidebar>
       <SidebarHeader className="p-4">
@@ -104,9 +109,9 @@ export function AppSidebar() {
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton 
                     asChild
-                    isActive={location.pathname === item.url}
+                    isActive={isActivePath(item.url)}
                   >
-                    <Link to={item.url}>
+                    <Link to={item.url} replace={false}>
                       <item.icon className="h-4 w-4 mr-2" />
                       <span>{item.title}</span>
                     </Link>

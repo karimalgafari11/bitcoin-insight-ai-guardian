@@ -11,7 +11,10 @@ export const SidebarMenuItem = React.forwardRef<
     data-sidebar="menu-item"
     className={cn("group/menu-item relative", className)}
     onClick={(e) => {
-      // Call original onClick if provided, but don't let it bubble up
+      // Prevent event from bubbling up to prevent unexpected navigation
+      e.stopPropagation();
+      
+      // Call original onClick if provided
       if (onClick) {
         onClick(e);
       }
