@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { format } from 'date-fns';
 import { arSA } from 'date-fns/locale';
@@ -17,15 +17,33 @@ interface CryptoPriceChartProps {
 const CryptoPriceChart: React.FC<CryptoPriceChartProps> = ({ priceData }) => {
   const { t, language } = useLanguage();
 
-  const formatDate = (date: Date) => {
-    const locale = language === 'ar' ? arSA : undefined;
-    return format(date, 'MMM dd', { locale });
-  };
+  // استخدام useMemo لمنع إعادة إنشاء الدوال عند كل تقديم
+  const formatDate = useMemo(() => {
+    return (date: Date) => {
+      const locale = language === 'ar' ? arSA : undefined;
+      return format(date, 'MMM dd', { locale });
+    };
+  }, [language]);
+
+  // استخدام useMemo لمنع التقديم المتكرر للبيانات
+  const chartData = useMemo(() => {
+    return priceData;
+  }, [priceData]);
+
+  // استخدام useMemo للدالة المنسقة
+  const labelFormatter = useMemo(() => {
+    return (label: any) => format(new Date(label), 'PPpp');
+  }, []);
+
+  // استخدام useMemo للقيمة المنسقة
+  const valueFormatter = useMemo(() => {
+    return (value: number) => [`$${value.toFixed(2)}`, t('السعر', 'Price')];
+  }, [t]);
 
   return (
     <div className="h-[250px]">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={priceData}>
+        <LineChart data={chartData}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis 
             dataKey="date"
@@ -37,8 +55,8 @@ const CryptoPriceChart: React.FC<CryptoPriceChartProps> = ({ priceData }) => {
             tick={{ fontSize: 12 }}
           />
           <Tooltip 
-            labelFormatter={(label) => format(new Date(label), 'PPpp')}
-            formatter={(value: number) => [`$${value.toFixed(2)}`, t('السعر', 'Price')]}
+            labelFormatter={labelFormatter}
+            formatter={valueFormatter}
           />
           <Line 
             type="monotone"
@@ -47,6 +65,7 @@ const CryptoPriceChart: React.FC<CryptoPriceChartProps> = ({ priceData }) => {
             strokeWidth={2}
             dot={false}
             animationDuration={500}
+            isAnimationActive={false} // إيقاف الرسوم المتحركة لتحسين الأداء
           />
         </LineChart>
       </ResponsiveContainer>
@@ -54,4 +73,4 @@ const CryptoPriceChart: React.FC<CryptoPriceChartProps> = ({ priceData }) => {
   );
 };
 
-export default CryptoPriceChart;
+export default React.memo(CryptoPriceChart); // استخدام React.memo لمنع إعادة تقديم المكون عندما لا تتغير الخصائص
