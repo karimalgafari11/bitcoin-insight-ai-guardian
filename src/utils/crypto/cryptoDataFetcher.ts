@@ -10,6 +10,51 @@ const MEMORY_CACHE_TTL = 15000; // 15 seconds
 // Track active requests to prevent duplicate concurrent requests
 const pendingRequests = new Map<string, Promise<any>>();
 
+// Queue system to limit API requests
+const apiRequestQueue: Array<() => Promise<any>> = [];
+let isProcessingQueue = false;
+
+// Process the queue one request at a time
+async function processQueue() {
+  if (isProcessingQueue || apiRequestQueue.length === 0) return;
+  
+  isProcessingQueue = true;
+  try {
+    // Take the next request from queue and execute it
+    const nextRequest = apiRequestQueue.shift();
+    if (nextRequest) {
+      await nextRequest();
+    }
+  } catch (error) {
+    console.error("Error processing queue item:", error);
+  } finally {
+    isProcessingQueue = false;
+    // Continue processing if there are more items
+    if (apiRequestQueue.length > 0) {
+      setTimeout(processQueue, 250); // Small delay between requests
+    }
+  }
+}
+
+// Add a request to the queue
+function enqueueRequest(requestFn: () => Promise<any>): Promise<any> {
+  return new Promise((resolve, reject) => {
+    apiRequestQueue.push(async () => {
+      try {
+        const result = await requestFn();
+        resolve(result);
+      } catch (error) {
+        reject(error);
+      }
+    });
+    
+    // Start processing if not already running
+    if (!isProcessingQueue) {
+      processQueue();
+    }
+  });
+}
+
 export async function fetchCryptoData(
   coinId: string, 
   days: string, 
@@ -58,9 +103,15 @@ export async function fetchCryptoData(
     
     // Set up the request timeout with AbortController
     const timeoutMs = 15000; // 15-second timeout
+    const abortController = new AbortController();
+    
+    // Set timeout to abort if it takes too long
+    const timeoutId = setTimeout(() => {
+      abortController.abort('Request timed out after 15 seconds');
+    }, timeoutMs);
     
     // Create a new request promise
-    const requestPromise = (async () => {
+    const requestPromise = enqueueRequest(async () => {
       try {
         // Use the crypto-cache function
         const functionPromise = supabase.functions.invoke('crypto-cache', {
@@ -102,14 +153,20 @@ export async function fetchCryptoData(
           throw new Error('Invalid data format received from API');
         }
         
+        // Make sure isRealtime is properly set based on data source
+        const enhancedData = {
+          ...responseData,
+          isRealtime: !responseData.fromCache && !responseData.isMockData
+        };
+        
         // Store successful response in memory cache
         inMemoryCache[cacheKey] = {
-          data: responseData as CryptoMarketData,
+          data: enhancedData as CryptoMarketData,
           timestamp: now
         };
 
         const result = {
-          data: responseData as CryptoMarketData,
+          data: enhancedData as CryptoMarketData,
           error: null,
           fromCache: responseData.fromCache,
           cacheTime: responseData.cacheTime,
@@ -118,10 +175,11 @@ export async function fetchCryptoData(
         
         return result;
       } finally {
+        clearTimeout(timeoutId);
         // Remove this request from pending requests when done
         pendingRequests.delete(cacheKey);
       }
-    })();
+    });
     
     // Store the promise in the pending requests map
     pendingRequests.set(cacheKey, requestPromise);

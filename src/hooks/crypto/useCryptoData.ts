@@ -7,10 +7,15 @@ import { fetchCryptoData, preloadCommonCryptoData } from '@/utils/crypto/cryptoD
 import { setupRealtimeChannel, cleanupChannel } from '@/utils/crypto/cryptoRealtimeChannel';
 import { useCryptoDataTimers } from './useCryptoDataTimers';
 import { useCryptoDataRefresh } from './useCryptoDataRefresh';
-import { CACHE_TTL } from '@/utils/crypto/constants';
+import { CACHE_TTL, POLL_INTERVAL_SHORT, POLL_INTERVAL_STANDARD } from '@/utils/crypto/constants';
 
 // Track mounted instances to optimize network requests
 const mountedInstances = new Set<string>();
+
+// Enhanced polling strategy based on timeframe
+const getPollingInterval = (days: string): number => {
+  return days === "1" ? POLL_INTERVAL_SHORT : POLL_INTERVAL_STANDARD;
+};
 
 export function useCryptoData(
   coinId: string = 'bitcoin',
@@ -25,6 +30,7 @@ export function useCryptoData(
   const [dataSource, setDataSource] = useState<string>("loading");
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [pollingEnabled, setPollingEnabled] = useState(true);
   
   // Use refs to track component state
   const mountedRef = useRef<boolean>(true); // Track if component is mounted
@@ -34,8 +40,9 @@ export function useCryptoData(
   
   // Set up timers and channels using custom hooks
   const { 
-    abortControllerRef,
-    realtimeChannelRef
+    fetchTimerRef,
+    realtimeChannelRef,
+    abortControllerRef
   } = useCryptoDataTimers();
   
   // Function to fetch data
@@ -77,11 +84,20 @@ export function useCryptoData(
       
       if (result.data) {
         setData(result.data);
-        setIsRealtime(result.data.isRealtime || false);
+        
+        // Always set isRealtime to true for fresh data that's not mock data
+        const isRealtimeData = !result.data.isMockData && !result.fromCache;
+        setIsRealtime(isRealtimeData);
+        
         setDataSource(result.data.dataSource || "unknown");
         setLastUpdated(result.data.fetchedAt || new Date().toISOString());
         lastFetchRef.current = now;
         setLastRefresh(new Date());
+        
+        // If we're getting real data, make sure polling is enabled
+        if (!result.data.isMockData) {
+          setPollingEnabled(true);
+        }
       } else if (result.error) {
         setError(result.error);
       }
@@ -125,8 +141,10 @@ export function useCryptoData(
       if (!payload.data || !mountedRef.current) return;
       
       const updatedData = payload.data;
+      
+      // Ensure we set isRealtime correctly from broadcasted data
       setData(updatedData);
-      setIsRealtime(updatedData.isRealtime || false);
+      setIsRealtime(true); // Explicit set to true for realtime updates
       setDataSource(updatedData.dataSource || "realtime-update");
       setLastUpdated(payload.updatedAt || new Date().toISOString());
       lastFetchRef.current = Date.now();
@@ -149,6 +167,19 @@ export function useCryptoData(
     const channel = setupRealtimeChannel(coinId, days, currency, onRealtimeUpdate);
     realtimeChannelRef.current = channel;
     
+    // Set up polling as a backup for realtime updates
+    const pollingInterval = getPollingInterval(days);
+    
+    // Set up polling timer
+    if (pollingEnabled) {
+      fetchTimerRef.current = window.setInterval(() => {
+        if (mountedRef.current) {
+          console.log('Polling for data updates');
+          fetchCryptoDataCallback(false);
+        }
+      }, pollingInterval);
+    }
+    
     // If this is the first load of this type, preload common data
     // This helps ensure other views load faster when navigated to
     if (isFirstInstance && coinId === 'bitcoin' && days === '7') {
@@ -167,17 +198,45 @@ export function useCryptoData(
       // Remove this instance from the registry
       mountedInstances.delete(instanceId);
       
+      // Clear polling timer
+      if (fetchTimerRef.current !== null) {
+        window.clearInterval(fetchTimerRef.current);
+        fetchTimerRef.current = null;
+      }
+      
+      // Clean up realtime channel
       if (realtimeChannelRef.current) {
         cleanupChannel(coinId, days, currency);
         realtimeChannelRef.current = null;
       }
       
+      // Abort any in-flight requests
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
         abortControllerRef.current = null;
       }
     };
-  }, [coinId, days, currency, fetchCryptoDataCallback, t]);
+  }, [coinId, days, currency, fetchCryptoDataCallback, pollingEnabled, t]);
+
+  // Allow manual toggling of polling
+  const togglePolling = useCallback(() => {
+    setPollingEnabled(prev => {
+      if (prev && fetchTimerRef.current !== null) {
+        // Disable polling
+        window.clearInterval(fetchTimerRef.current);
+        fetchTimerRef.current = null;
+        return false;
+      } else {
+        // Enable polling
+        if (fetchTimerRef.current === null && mountedRef.current) {
+          fetchTimerRef.current = window.setInterval(() => {
+            fetchCryptoDataCallback(false);
+          }, getPollingInterval(days));
+        }
+        return true;
+      }
+    });
+  }, [days, fetchCryptoDataCallback]);
 
   return { 
     data, 
@@ -187,7 +246,9 @@ export function useCryptoData(
     isRealtime, 
     dataSource,
     lastUpdated,
-    lastRefresh
+    lastRefresh,
+    pollingEnabled,
+    togglePolling
   };
 }
 

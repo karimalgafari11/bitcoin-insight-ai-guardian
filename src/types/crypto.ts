@@ -19,6 +19,8 @@ export interface CryptoMarketData {
   fromCache?: boolean;
   fetchedAt?: string;
   cacheTime?: string;
+  needsRefresh?: boolean;
+  broadcastTimestamp?: string;
 }
 
 export interface UseCryptoDataResult {
@@ -30,4 +32,6 @@ export interface UseCryptoDataResult {
   dataSource: string;
   lastUpdated: string | null;
   lastRefresh: Date;
+  pollingEnabled?: boolean;
+  togglePolling?: () => void;
 }

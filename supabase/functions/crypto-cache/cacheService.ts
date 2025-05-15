@@ -9,6 +9,10 @@ export interface CryptoRequest {
   forceRefresh?: boolean;
 }
 
+// Reduced cache TTL for more frequent updates
+const CACHE_TTL_STANDARD = 300000; // 5 minutes (standard)
+const CACHE_TTL_SHORT = 60000;     // 1 minute (for short timeframes)
+
 export async function getCachedData(
   supabase: any,
   { coinId, days, currency, forceRefresh = false }: CryptoRequest
@@ -31,14 +35,27 @@ export async function getCachedData(
 
     if (!cachedError && cachedData) {
       const cacheAge = Date.now() - new Date(cachedData.updated_at).getTime();
-      // Use cache if it's less than 5 minutes old (or 1 minute for 1-day views)
-      const maxCacheAge = days === '1' ? 60000 : 300000; // 1 or 5 minutes
+      
+      // Use shorter TTL for shorter timeframes
+      const maxCacheAge = days === '1' ? CACHE_TTL_SHORT : CACHE_TTL_STANDARD;
+      
       if (cacheAge < maxCacheAge) {
         console.log(`Using cached data from ${Math.round(cacheAge/1000)} seconds ago`);
         return {
           ...cachedData.data,
           fromCache: true,
           cacheTime: cachedData.updated_at,
+          fetchedAt: new Date().toISOString()
+        };
+      } else {
+        // Implement stale-while-revalidate pattern:
+        // Return stale data but mark it for refresh
+        console.log(`Cached data is stale (${Math.round(cacheAge/1000)} seconds old). Using while fetching fresh data.`);
+        return {
+          ...cachedData.data,
+          fromCache: true,
+          cacheTime: cachedData.updated_at,
+          needsRefresh: true,
           fetchedAt: new Date().toISOString()
         };
       }
@@ -59,7 +76,7 @@ export async function saveToCache(
   // Don't save mock data to cache
   if (!freshData || freshData.isMockData) {
     console.log("Not caching mock data or invalid data");
-    return;
+    return false;
   }
 
   console.log("Saving fresh data to cache");
@@ -103,6 +120,7 @@ export async function broadcastUpdate(
     const event = 'crypto-update';
     console.log(`Broadcasting update to channel: ${channel}, event: ${event}`);
     
+    // Enhanced broadcast payload with timestamp and isRealtime flag
     const { error: broadcastError } = await supabase
       .from('broadcast_messages')
       .insert({
@@ -112,7 +130,11 @@ export async function broadcastUpdate(
           coinId,
           days, 
           currency,
-          data: freshData,
+          data: {
+            ...freshData,
+            isRealtime: true, // Explicitly mark as realtime
+            broadcastTimestamp: new Date().toISOString(),
+          },
           updatedAt: new Date().toISOString()
         }
       });

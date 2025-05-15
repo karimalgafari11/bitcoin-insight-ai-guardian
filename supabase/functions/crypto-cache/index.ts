@@ -57,15 +57,75 @@ serve(async (req: Request) => {
 
     // Check if we have recent cached data unless force refresh is requested
     const cachedData = await getCachedData(supabase, request);
-    if (cachedData) {
+    
+    // Use the stale-while-revalidate pattern:
+    // 1. If we have fresh cached data, return it immediately
+    // 2. If we have stale data (needsRefresh), return it but also trigger a background refresh
+    // 3. If we have no data, fetch fresh data
+    
+    if (cachedData && !cachedData.needsRefresh) {
+      // Case 1: Fresh cache - return immediately
       return new Response(
         JSON.stringify(cachedData),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    // No valid cache, fetch fresh data from crypto-data function
-    const freshData = await fetchCryptoData(supabase, request);
+    
+    // For stale cache or no cache, fetch fresh data
+    // If stale cache, we'll still return it while fresh data is being fetched
+    const freshDataPromise = fetchCryptoData(supabase, request);
+    
+    if (cachedData && cachedData.needsRefresh) {
+      // Case 2: Stale cache - use background refresh pattern
+      // We'll return cached data immediately while refreshing in background
+      
+      // Use waitUntil for background processing if available
+      if (typeof EdgeRuntime !== 'undefined' && 'waitUntil' in EdgeRuntime) {
+        EdgeRuntime.waitUntil((async () => {
+          try {
+            const freshData = await freshDataPromise;
+            
+            if (freshData && !freshData.isMockData) {
+              const saved = await saveToCache(supabase, request, freshData);
+              if (saved) {
+                await broadcastUpdate(supabase, request, freshData);
+              }
+            }
+          } catch (error) {
+            console.error("Background refresh error:", error);
+          }
+        })());
+      } else {
+        // If waitUntil is not available, use a regular background promise
+        // but don't await it so we can return response immediately
+        (async () => {
+          try {
+            const freshData = await freshDataPromise;
+            
+            if (freshData && !freshData.isMockData) {
+              const saved = await saveToCache(supabase, request, freshData);
+              if (saved) {
+                await broadcastUpdate(supabase, request, freshData);
+              }
+            }
+          } catch (error) {
+            console.error("Background refresh error:", error);
+          }
+        })();
+      }
+      
+      // Return cached data immediately
+      return new Response(
+        JSON.stringify({
+          ...cachedData,
+          refreshing: true,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    // Case 3: No valid cache, fetch fresh data synchronously
+    const freshData = await freshDataPromise;
 
     // Save the fresh data to our cache if it's not mock data
     if (freshData && !freshData.isMockData) {

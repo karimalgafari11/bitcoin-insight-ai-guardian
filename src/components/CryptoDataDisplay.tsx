@@ -3,10 +3,11 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useCryptoData } from '@/hooks/crypto'; 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { RefreshCw, Star } from 'lucide-react';
+import { RefreshCw, Star, Wifi, WifiOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { CryptoFilterOptions, DEFAULT_FILTER_OPTIONS } from '@/types/filters';
+import { Badge } from '@/components/ui/badge';
 
 // Import our components
 import CryptoSelector from './crypto/CryptoSelector';
@@ -38,7 +39,9 @@ const CryptoDataDisplay: React.FC<CryptoDataDisplayProps> = ({ defaultCoin = 'bi
     refreshData, 
     isRealtime,
     dataSource,
-    lastUpdated 
+    lastUpdated,
+    pollingEnabled,
+    togglePolling
   } = useCryptoData(selectedCoin, timeframe);
 
   // Use useCallback to prevent re-creations of event handlers
@@ -116,6 +119,41 @@ const CryptoDataDisplay: React.FC<CryptoDataDisplayProps> = ({ defaultCoin = 'bi
               loading={loading} 
               dataSource={dataSource} 
             />
+            
+            {/* Add real-time status badge */}
+            {!loading && data && (
+              <Badge 
+                variant="outline" 
+                className={isRealtime 
+                  ? "bg-green-500/10 text-green-500 border-green-500" 
+                  : "bg-orange-500/10 text-orange-500 border-orange-500"
+                }
+              >
+                {isRealtime 
+                  ? <><Wifi className="h-3 w-3 mr-1" /> {t("بث مباشر", "Live")}</>
+                  : <><WifiOff className="h-3 w-3 mr-1" /> {t("غير مباشر", "Not Live")}</>
+                }
+              </Badge>
+            )}
+            
+            {/* Add polling toggle button */}
+            {!loading && togglePolling && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={togglePolling}
+                title={pollingEnabled 
+                  ? t("إيقاف التحديث التلقائي", "Stop Auto-Refresh") 
+                  : t("تمكين التحديث التلقائي", "Enable Auto-Refresh")
+                }
+                className={`text-xs ${pollingEnabled ? 'text-green-500' : 'text-gray-500'}`}
+              >
+                {pollingEnabled 
+                  ? t("تحديث تلقائي", "Auto") 
+                  : t("تحديث يدوي", "Manual")
+                }
+              </Button>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <Button 
