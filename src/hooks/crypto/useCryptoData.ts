@@ -95,6 +95,7 @@ export function useCryptoData(
     // Clean up any existing channel before setting up a new one
     if (realtimeChannelRef.current) {
       cleanupChannel(paramsRef.current.coinId, paramsRef.current.days, paramsRef.current.currency);
+      realtimeChannelRef.current = null;
     }
 
     // Set up the realtime channel
@@ -104,11 +105,38 @@ export function useCryptoData(
     // If this is the first load of this type, preload common data
     if (isFirstInstance && coinId === 'bitcoin' && days === '7') {
       // Wait a bit to not compete with initial load
-      setTimeout(() => {
+      const preloadTimerId = setTimeout(() => {
         if (mountedRef.current) {
           preloadCommonCryptoData();
         }
       }, 5000);
+      
+      // Make sure to clear this timer on cleanup
+      return () => {
+        mountedRef.current = false;
+        clearTimeout(preloadTimerId);
+        
+        // Remove this instance from the registry
+        mountedInstances.delete(instanceId);
+        
+        // Clear polling timer
+        if (fetchTimerRef.current !== null) {
+          window.clearInterval(fetchTimerRef.current);
+          fetchTimerRef.current = null;
+        }
+        
+        // Clean up realtime channel
+        if (realtimeChannelRef.current) {
+          cleanupChannel(coinId, days, currency);
+          realtimeChannelRef.current = null;
+        }
+        
+        // Abort any in-flight requests
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+          abortControllerRef.current = null;
+        }
+      };
     }
     
     // Clean up on unmount

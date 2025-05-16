@@ -34,8 +34,24 @@ export function generateMockData(coinId: string, days: string, currency: string)
   }
   
   // Number of data points - approximately 1 per hour for the requested days
-  const dataPoints = Math.min(parseInt(days) * 24, 500);
+  // But set some reasonable limits to avoid performance issues
+  const hoursPerDay = 24;
+  const requestedDataPoints = parseInt(days) * hoursPerDay;
+  const maxDataPoints = 500;
+  const dataPoints = Math.min(requestedDataPoints, maxDataPoints);
   const timeStep = daysMs / dataPoints;
+  
+  // Use consistent seed for the same coin and timeframe to avoid fluctuations
+  // when re-rendering components
+  const seed = coinId + days + currency;
+  const seedNum = Array.from(seed).reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  
+  // Simple seeded random function
+  let seedValue = seedNum;
+  const seededRandom = () => {
+    seedValue = (seedValue * 9301 + 49297) % 233280;
+    return seedValue / 233280;
+  };
   
   // Starting values
   let currentPrice = basePrice;
@@ -47,17 +63,17 @@ export function generateMockData(coinId: string, days: string, currency: string)
     const timestamp = startTime + i * timeStep;
     
     // Add some random price changes
-    const priceChange = (Math.random() - 0.48) * 0.02 * currentPrice; // Slightly biased upward
+    const priceChange = (seededRandom() - 0.48) * 0.02 * currentPrice; // Slightly biased upward
     currentPrice += priceChange;
     currentPrice = Math.max(currentPrice, basePrice * 0.7); // Prevent too low prices
     
     // Volume fluctuates more randomly
-    const volumeChange = (Math.random() - 0.5) * 0.1 * currentVolume;
+    const volumeChange = (seededRandom() - 0.5) * 0.1 * currentVolume;
     currentVolume += volumeChange;
     currentVolume = Math.max(currentVolume, basePrice * 5000);
     
     // Market cap follows price but with some lag
-    const marketCapChange = priceChange * 800000 + (Math.random() - 0.5) * 0.005 * currentMarketCap;
+    const marketCapChange = priceChange * 800000 + (seededRandom() - 0.5) * 0.005 * currentMarketCap;
     currentMarketCap += marketCapChange;
     currentMarketCap = Math.max(currentMarketCap, basePrice * 500000);
     

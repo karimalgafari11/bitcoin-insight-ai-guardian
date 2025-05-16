@@ -53,7 +53,7 @@ export function setupRealtimeChannel(
         console.log(`Realtime subscription status for ${channelName}: ${status}`);
         
         // Handle channel errors and disconnections
-        if (status === 'CHANNEL_ERROR' || status === 'CLOSED') {
+        if (status === 'CHANNEL_ERROR') {
           const attempts = channelReconnectAttempts.get(channelName) || 0;
           
           if (attempts < MAX_RECONNECT_ATTEMPTS) {

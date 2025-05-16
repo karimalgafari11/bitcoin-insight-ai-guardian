@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { toast } from '@/components/ui/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { CryptoFilterOptions, DEFAULT_FILTER_OPTIONS } from '@/types/filters';
@@ -20,6 +20,7 @@ const CryptoDataContainer: React.FC<CryptoDataContainerProps> = ({ defaultCoin =
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [filterOptions, setFilterOptions] = useState<CryptoFilterOptions>(DEFAULT_FILTER_OPTIONS);
   const [showWatchlist, setShowWatchlist] = useState(false);
+  const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const { 
     data, 
@@ -43,12 +44,23 @@ const CryptoDataContainer: React.FC<CryptoDataContainerProps> = ({ defaultCoin =
   }, []);
   
   const handleRefresh = useCallback(() => {
+    // Prevent multiple rapid refresh requests
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current);
+    }
+    
     refreshData();
     setLastRefresh(new Date());
+    
     toast({
       title: t('تحديث البيانات', 'Data Refresh'),
       description: t('جاري تحديث البيانات...', 'Refreshing data...'),
     });
+    
+    // Set a cooldown period for refresh button
+    refreshTimeoutRef.current = setTimeout(() => {
+      refreshTimeoutRef.current = null;
+    }, 3000);
   }, [refreshData, t]);
 
   const handleFilterChange = useCallback((newFilters: CryptoFilterOptions) => {

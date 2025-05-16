@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Card, CardContent } from "@/components/ui/card";
 import BitcoinChart from "@/components/BitcoinChart";
@@ -13,49 +13,56 @@ import TimeframeSelector from "@/components/TimeframeSelector";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
-import { useCryptoData } from "@/hooks/crypto";
 
 const Dashboard = () => {
   const { t } = useLanguage();
   const [currentTimeframe, setCurrentTimeframe] = useState<"4h" | "1d" | "1w" | "1m">("1d");
   const [refreshKey, setRefreshKey] = useState(0);
   const [hasBinanceKey, setHasBinanceKey] = useState(false);
+  const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const initialRenderRef = useRef(true);
 
-  // Check for Binance API keys on component mount
+  // Check for Binance API keys on component mount only
   useEffect(() => {
-    const apiKey = localStorage.getItem("binance_api_key");
-    const apiSecret = localStorage.getItem("binance_api_secret");
-    
-    if (apiKey && apiSecret) {
-      setHasBinanceKey(true);
-      toast({
-        title: t("بيانات بينانس", "Binance Data"),
-        description: t(
-          "تم العثور على مفاتيح API لبينانس. سيتم استخدام بيانات مباشرة.",
-          "Binance API keys found. Using live data."
-        ),
-      });
+    if (initialRenderRef.current) {
+      initialRenderRef.current = false;
+      
+      const apiKey = localStorage.getItem("binance_api_key");
+      const apiSecret = localStorage.getItem("binance_api_secret");
+      
+      if (apiKey && apiSecret) {
+        setHasBinanceKey(true);
+        toast({
+          title: t("بيانات بينانس", "Binance Data"),
+          description: t(
+            "تم العثور على مفاتيح API لبينانس. سيتم استخدام بيانات مباشرة.",
+            "Binance API keys found. Using live data."
+          ),
+        });
+      }
     }
   }, [t]);
 
-  // Map UI timeframes to API days parameter
-  const timeframeToDays = {
-    "4h": "1",
-    "1d": "1",
-    "1w": "7",
-    "1m": "30",
-  };
-
-  const handleTimeframeChange = (timeframe: "4h" | "1d" | "1w" | "1m") => {
+  const handleTimeframeChange = useCallback((timeframe: "4h" | "1d" | "1w" | "1m") => {
     setCurrentTimeframe(timeframe);
-  };
+  }, []);
 
   const handleRefreshAll = useCallback(() => {
+    // Prevent rapid multiple refreshes
+    if (refreshTimeoutRef.current) {
+      return;
+    }
+    
     setRefreshKey(prev => prev + 1);
     toast({
       title: t("تحديث البيانات", "Refreshing Data"),
       description: t("جاري تحديث جميع البيانات...", "Refreshing all data..."),
     });
+    
+    // Set a cooldown period to prevent spam refreshing
+    refreshTimeoutRef.current = setTimeout(() => {
+      refreshTimeoutRef.current = null;
+    }, 5000);
   }, [t]);
 
   return (
@@ -78,8 +85,9 @@ const Dashboard = () => {
                 size="sm"
                 onClick={handleRefreshAll}
                 className="gap-2"
+                disabled={refreshTimeoutRef.current !== null}
               >
-                <RefreshCw className="h-4 w-4" />
+                <RefreshCw className={`h-4 w-4 ${refreshTimeoutRef.current ? 'animate-spin' : ''}`} />
                 {t("تحديث الكل", "Refresh All")}
               </Button>
               <SidebarTrigger className="bg-white dark:bg-gray-800 shadow-sm" />
