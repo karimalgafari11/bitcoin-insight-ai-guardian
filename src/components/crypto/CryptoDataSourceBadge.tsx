@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Wifi, WifiOff, Database, CloudOff } from 'lucide-react';
+import { Wifi, WifiOff, Database, CloudOff, CheckCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -27,6 +27,16 @@ const CryptoDataSourceBadge: React.FC<CryptoDataSourceBadgeProps> = ({
       <Badge variant="outline" className="bg-red-500/10 text-red-500 border-red-500">
         <CloudOff className="w-3 h-3 mr-1" />
         {t('لا توجد بيانات', 'No Data')}
+      </Badge>
+    );
+  }
+  
+  // Special badge for Binance data
+  if (dataSource === 'binance') {
+    return (
+      <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500">
+        <CheckCircle className="w-3 h-3 mr-1" />
+        {t('بيانات بينانس', 'Binance Data')}
       </Badge>
     );
   }

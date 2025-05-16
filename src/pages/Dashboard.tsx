@@ -2,6 +2,7 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import BitcoinChart from "@/components/BitcoinChart";
 import BitcoinStats from "@/components/BitcoinStats";
 import TradingRecommendation from "@/components/TradingRecommendation";
@@ -11,14 +12,14 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import CryptoDataDisplay from "@/components/CryptoDataDisplay";
 import TimeframeSelector from "@/components/TimeframeSelector";
 import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, CheckCircle } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 
 const Dashboard = () => {
   const { t } = useLanguage();
   const [currentTimeframe, setCurrentTimeframe] = useState<"4h" | "1d" | "1w" | "1m">("1d");
   const [refreshKey, setRefreshKey] = useState(0);
-  const [hasBinanceKey, setHasBinanceKey] = useState(false);
+  const [hasBinanceKey, setHasBinanceKey] = useState(true); // Default to true since we're using Binance as primary source
   
   // Enhanced refs for better tracking refresh behavior
   const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -32,19 +33,14 @@ const Dashboard = () => {
     if (initialRenderRef.current) {
       initialRenderRef.current = false;
       
-      const apiKey = localStorage.getItem("binance_api_key");
-      const apiSecret = localStorage.getItem("binance_api_secret");
-      
-      if (apiKey && apiSecret) {
-        setHasBinanceKey(true);
-        toast({
-          title: t("بيانات بينانس", "Binance Data"),
-          description: t(
-            "تم العثور على مفاتيح API لبينانس. سيتم استخدام بيانات مباشرة.",
-            "Binance API keys found. Using live data."
-          ),
-        });
-      }
+      // Show toast that we're now using Binance data for everything
+      toast({
+        title: t("بيانات بينانس", "Binance Data"),
+        description: t(
+          "تم توحيد مصدر البيانات لاستخدام بينانس كمصدر رئيسي للبيانات الحية.",
+          "Data source has been unified to use Binance as the primary source for live data."
+        ),
+      });
     }
   }, [t]);
 
@@ -98,7 +94,7 @@ const Dashboard = () => {
     
     toast({
       title: t("تحديث البيانات", "Refreshing Data"),
-      description: t("جاري تحديث جميع البيانات...", "Refreshing all data..."),
+      description: t("جاري تحديث جميع البيانات من بينانس...", "Refreshing all data from Binance..."),
     });
     
     // Set cooldown state
@@ -126,11 +122,10 @@ const Dashboard = () => {
               {t("لوحة المعلومات", "Dashboard")}
             </h1>
             <div className="flex items-center gap-4">
-              {hasBinanceKey && (
-                <div className="text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-full px-3 py-1">
-                  {t("بيانات بينانس مباشرة", "Live Binance Data")}
-                </div>
-              )}
+              <Badge variant="outline" className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 flex items-center gap-1">
+                <CheckCircle className="h-3 w-3" />
+                {t("بيانات بينانس مباشرة", "Live Binance Data")}
+              </Badge>
               <Button 
                 variant="outline" 
                 size="sm"

@@ -6,64 +6,60 @@ import { generateMockData } from "./utils/mockDataGenerator.ts";
 
 /**
  * Main function to fetch and aggregate crypto data from multiple sources
+ * Modified to always prioritize Binance as primary source
  */
 export async function fetchCryptoData(coinId: string, days: string, currency: string) {
   console.log(`Fetching data for: ${coinId}, days: ${days}, currency: ${currency}`);
   
-  // Check for Binance API keys in environment variables or passed as request headers
-  const hasBinanceApiKey = Deno.env.get("BINANCE_API_KEY") || Deno.env.get("binance_api_key");
-  const hasCoinGeckoApiKey = Deno.env.get("COINGECKO_API_KEY") || Deno.env.get("coingecko_api_key");
-  const hasCoinMarketCapApiKey = Deno.env.get("CMC_API_KEY") || Deno.env.get("cmc_api_key");
-
-  console.log(`Using API keys - CoinMarketCap available: ${!!hasCoinMarketCapApiKey} CoinGecko available: ${!!hasCoinGeckoApiKey}`);
-  
-  // Try Binance first if we have API keys
+  // Always try Binance first as our primary and preferred data source
   try {
-    console.log("Attempting to fetch from Binance");
+    console.log("Fetching from Binance as primary source");
     const binanceData = await fetchFromBinance(coinId, days, currency);
     return {
       ...binanceData,
       isMockData: false,
-      dataSource: "binance"
+      dataSource: "binance",
+      preferBinance: true
     };
   } catch (binanceError) {
     console.error("Binance fetch failed:", binanceError);
-    console.error("Detailed Binance fetch error:", binanceError);
-  }
-
-  // Try CoinGecko as our second source
-  try {
-    console.log("Attempting to fetch from CoinGecko");
-    const coinGeckoData = await fetchFromCoinGecko(coinId, days, currency);
-    return {
-      ...coinGeckoData,
-      isMockData: false,
-      dataSource: "coingecko"
-    };
-  } catch (coinGeckoError) {
-    console.error("CoinGecko fetch failed:", coinGeckoError);
-    console.error("Detailed CoinGecko fetch error:", coinGeckoError);
+    
+    // If Binance fails, try CoinGecko as fallback
+    try {
+      console.log("Attempting fallback to CoinGecko");
+      const coinGeckoData = await fetchFromCoinGecko(coinId, days, currency);
+      return {
+        ...coinGeckoData,
+        isMockData: false,
+        dataSource: "coingecko",
+        preferBinance: true  // Still indicate we prefer Binance for next refresh
+      };
+    } catch (coinGeckoError) {
+      console.error("CoinGecko fetch failed:", coinGeckoError);
+      
+      // Try public APIs as our third option
+      try {
+        console.log("Attempting fallback to public APIs");
+        const publicApiData = await fetchFromPublicApis(coinId, days, currency);
+        return {
+          ...publicApiData,
+          isMockData: false,
+          dataSource: "public-api",
+          preferBinance: true  // Still indicate we prefer Binance for next refresh
+        };
+      } catch (publicApiError) {
+        console.error("Public APIs fetch failed:", publicApiError);
+      }
+    }
   }
   
-  // Try public APIs as our third source
-  try {
-    console.log("Attempting to fetch from public APIs");
-    const publicApiData = await fetchFromPublicApis(coinId, days, currency);
-    return {
-      ...publicApiData,
-      isMockData: false,
-      dataSource: "public-api"
-    };
-  } catch (publicApiError) {
-    console.error("Public APIs fetch failed:", publicApiError);
-  }
-  
-  // As a last resort, return mock data
+  // As a last resort, return mock data with a flag indicating it's mock
   console.log("All API sources failed, returning mock data");
   const mockData = generateMockData(coinId, days, currency);
   return {
     ...mockData,
     isMockData: true,
-    dataSource: "mock"
+    dataSource: "mock",
+    preferBinance: true  // Still indicate we prefer Binance for next refresh
   };
 }

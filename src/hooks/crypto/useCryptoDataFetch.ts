@@ -51,10 +51,12 @@ export function useCryptoDataFetch({
     const lastPrice = cryptoData.prices[cryptoData.prices.length - 1];
     // Use metadata.symbol or symbol or fallback to coinId
     const symbolToUse = cryptoData.metadata?.symbol || cryptoData.symbol || coinId;
+    // Include dataSource in hash to prioritize Binance
     return `${symbolToUse}-${lastPrice?.[0]}-${lastPrice?.[1]}-${cryptoData.dataSource}`;
   };
 
   // Enhanced fetch function with better data change detection and error handling
+  // Now prioritizes Binance data
   const fetchCryptoDataCallback = useCallback(async (force = false) => {
     // Don't fetch again if we're already loading, unless force=true
     if (loading && !force) return;
@@ -67,7 +69,28 @@ export function useCryptoDataFetch({
       paramsRef.current.days !== days ||
       paramsRef.current.currency !== currency;
       
-    if (!force && !hasParamsChanged && now - lastFetchRef.current < CACHE_TTL) {
+    // Always force refresh when current data is not from Binance
+    let currentData = null;
+    let shouldForceForBinance = false;
+    
+    try {
+      // Get the current data to check its source
+      currentData = await new Promise<CryptoMarketData | null>(resolve => {
+        setData(existingData => {
+          resolve(existingData);
+          return existingData;
+        });
+      });
+      
+      // Force refresh if current data doesn't come from Binance
+      if (currentData && currentData.dataSource !== 'binance') {
+        shouldForceForBinance = true;
+      }
+    } catch (err) {
+      console.error('Error checking current data source:', err);
+    }
+      
+    if (!force && !hasParamsChanged && !shouldForceForBinance && now - lastFetchRef.current < CACHE_TTL) {
       return;
     }
     
@@ -82,17 +105,8 @@ export function useCryptoDataFetch({
     abortControllerRef.current = new AbortController();
     
     let shouldShowLoading = true; // Default to showing loading state
-    let currentData: CryptoMarketData | null = null;
     
     try {
-      // Get the current data to check if we need to show loading
-      currentData = await new Promise(resolve => {
-        setData(existingData => {
-          resolve(existingData);
-          return existingData;
-        });
-      });
-      
       // Only show loading if we don't have any data yet
       shouldShowLoading = !currentData;
       
@@ -101,8 +115,8 @@ export function useCryptoDataFetch({
       }
       setError(null);
 
-      // Request data with force flag if specified
-      const result = await fetchCryptoData(coinId, days, currency, force);
+      // Request data with force flag if specified or if we need to switch to Binance
+      const result = await fetchCryptoData(coinId, days, currency, force || shouldForceForBinance);
       
       // Only update state if component is still mounted
       if (!mountedRef.current) return;
@@ -112,27 +126,28 @@ export function useCryptoDataFetch({
         const newDataHash = generateDataHash(result.data);
         const dataChanged = newDataHash !== lastDataHashRef.current;
         
-        if (dataChanged || force) {
-          console.log(`Data ${dataChanged ? 'changed' : 'force updated'}, updating state`);
+        // Always update if source is Binance or if data changed
+        if (dataChanged || force || result.data.dataSource === 'binance') {
+          console.log(`Data ${dataChanged ? 'changed' : 'force updated'}, updating state. Source: ${result.data.dataSource}`);
           lastDataHashRef.current = newDataHash;
           
           setData(result.data);
           
-          // Set isRealtime appropriately
-          const isRealtimeData = !result.data.isMockData && !result.fromCache;
+          // Set isRealtime appropriately - always true for Binance
+          const isRealtimeData = result.data.dataSource === 'binance' || (!result.data.isMockData && !result.fromCache);
           setIsRealtime(isRealtimeData);
           
-          setDataSource(result.data.dataSource || "unknown");
+          setDataSource(result.data.dataSource || "binance");
           setLastUpdated(result.data.fetchedAt || new Date().toISOString());
           lastFetchRef.current = now;
           setLastRefresh(new Date());
           
-          // If we're getting real data, make sure polling is enabled
-          if (!result.data.isMockData) {
+          // If we're getting Binance data, make sure polling is enabled
+          if (result.data.dataSource === 'binance') {
             setPollingEnabled(true);
           }
         } else {
-          console.log('Data has not changed, skipping state update');
+          console.log('Data has not changed and already using Binance, skipping state update');
         }
       } else if (result.error) {
         setError(result.error);

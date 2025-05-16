@@ -1,11 +1,11 @@
 
 /**
  * Market Data Edge Function
- * Fetches cryptocurrency market data from various sources
+ * Fetches cryptocurrency market data exclusively from Binance
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
-// Load API keys from environment
+// Load API keys from environment - these keys are for public API endpoints
 const BINANCE_API_KEY = 'UklcmVRAsY7KBBbp2FfqHVuequcGBOhAKb5tRMxg3vQEPa77QrNX8GvhTnqtIT1x';
 const BINANCE_SECRET_KEY = '9GzGJPmfM2fFLh1cpOzUAowcZCn5UpVA1b4wXwoZGdSbDVzNrlMvd4RBjGTXlCVF';
 
@@ -37,8 +37,8 @@ serve(async (req) => {
     const currency = url.searchParams.get('currency') || 'USD';
 
     // Format the symbol for Binance API
-    const binanceSymbol = `${symbol}${currency}`;
-    console.log(`Attempting to fetch data from Binance for symbol: ${binanceSymbol}`);
+    const binanceSymbol = `${symbol}${currency}T`;  // Note the 'T' suffix for most Binance pairs
+    console.log(`Fetching data from Binance for symbol: ${binanceSymbol}`);
     
     try {
       // Fetch ticker data from Binance
@@ -99,20 +99,64 @@ serve(async (req) => {
       
       console.error("Detailed error:", errorMessage);
       
-      // Fall back to mock data
-      return new Response(
-        JSON.stringify({
-          price: 45000.00,  // Mock data
-          volume24h: 24000000000,
-          change24h: 1.5,
-          marketCap: 850000000000,
-          lastUpdate: new Date().toISOString(),
-          source: "mock-data",
-          isLive: false,
-          error: errorMessage
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      // Try again with a different symbol format (some pairs don't use the T suffix)
+      try {
+        const alternativeSymbol = `${symbol}${currency}`;
+        console.log(`Retrying with alternative symbol format: ${alternativeSymbol}`);
+        
+        const retryTickerResponse = await fetch(
+          `https://api.binance.com/api/v3/ticker/24hr?symbol=${alternativeSymbol}`,
+          {
+            headers: {
+              'X-MBX-APIKEY': BINANCE_API_KEY
+            }
+          }
+        );
+        
+        if (!retryTickerResponse.ok) {
+          throw new Error(`Alternative symbol also failed: ${alternativeSymbol}`);
+        }
+        
+        const tickerData = await retryTickerResponse.json();
+        
+        const retryPriceResponse = await fetch(
+          `https://api.binance.com/api/v3/ticker/price?symbol=${alternativeSymbol}`
+        );
+        
+        if (!retryPriceResponse.ok) {
+          throw new Error(`Price endpoint for alternative symbol failed`);
+        }
+        
+        const priceData = await retryPriceResponse.json();
+        
+        // Format the response
+        const marketData: MarketDataResponse = {
+          price: parseFloat(priceData.price),
+          volume24h: parseFloat(tickerData.volume),
+          change24h: parseFloat(tickerData.priceChangePercent),
+          marketCap: parseFloat(tickerData.quoteVolume), // Using quote volume as a proxy
+          lastUpdate: new Date().toISOString()
+        };
+        
+        return new Response(
+          JSON.stringify({ 
+            ...marketData, 
+            source: "binance",
+            isLive: true
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      } catch (retryError) {
+        // Both symbol formats failed, return error
+        return new Response(
+          JSON.stringify({
+            error: errorMessage,
+            source: "error",
+            isLive: false
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+        );
+      }
     }
   } catch (error) {
     const corsHeaders = {

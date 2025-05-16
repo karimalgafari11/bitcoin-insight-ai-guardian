@@ -21,7 +21,12 @@ export interface CryptoMarketData {
   cacheTime?: string;
   needsRefresh?: boolean;
   broadcastTimestamp?: string;
-  symbol?: string;  // Added missing property to fix type error
+  symbol?: string;
+  binanceData?: {
+    isLive: boolean;
+    lastUpdate: string;
+  };
+  preferBinance?: boolean;
 }
 
 export interface UseCryptoDataResult {
