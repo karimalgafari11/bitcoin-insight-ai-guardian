@@ -1,23 +1,24 @@
 
-import React from 'react';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { CardHeader, CardTitle } from '@/components/ui/card';
+import React, { memo } from 'react';
+import { CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Star, Wifi, WifiOff } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { RefreshCw, ChevronDown, FileBarChart } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { CryptoMarketData } from '@/types/crypto';
 import { CryptoFilterOptions } from '@/types/filters';
 import CryptoSelector from './CryptoSelector';
-import CryptoDataSourceBadge from './CryptoDataSourceBadge';
+import CryptoFilter from './CryptoFilter';
 import CryptoSourceProviderBadge from './CryptoSourceProviderBadge';
-import WatchlistButton from './WatchlistButton';
+import CryptoDataSourceBadge from './CryptoDataSourceBadge';
 
 interface CryptoHeaderProps {
   loading: boolean;
-  data: any;
+  data: CryptoMarketData | null;
   isRealtime: boolean;
   dataSource: string;
-  pollingEnabled?: boolean;
-  togglePolling?: () => void;
+  pollingEnabled: boolean;
+  togglePolling: () => void;
   toggleWatchlist: () => void;
   handleRefresh: () => void;
   showWatchlist: boolean;
@@ -26,7 +27,8 @@ interface CryptoHeaderProps {
   selectedTimeframe: string;
   onTimeframeChange: (value: string) => void;
   filterOptions: CryptoFilterOptions;
-  onFilterChange: (newFilters: CryptoFilterOptions) => void;
+  onFilterChange: (filters: CryptoFilterOptions) => void;
+  isRefreshDisabled?: boolean;
 }
 
 const CryptoHeader: React.FC<CryptoHeaderProps> = ({
@@ -44,102 +46,114 @@ const CryptoHeader: React.FC<CryptoHeaderProps> = ({
   selectedTimeframe,
   onTimeframeChange,
   filterOptions,
-  onFilterChange
+  onFilterChange,
+  isRefreshDisabled = false
 }) => {
   const { t } = useLanguage();
   
+  // Map timeframe values to display text
+  const timeframeOptions = [
+    { value: '1', label: t('24 ساعة', '24h') },
+    { value: '7', label: t('7 أيام', '7d') },
+    { value: '30', label: t('30 يوم', '30d') },
+    { value: '90', label: t('90 يوم', '90d') },
+  ];
+  
   return (
-    <CardHeader className="flex flex-row items-center justify-between pb-2">
-      <div className="flex items-center gap-2">
-        <CardTitle>{t('بيانات العملة الرقمية', 'Cryptocurrency Data')}</CardTitle>
+    <CardHeader className="pb-2">
+      <div className="flex flex-wrap justify-between items-center mb-4">
+        <CardTitle className="text-2xl text-right md:text-left">
+          {t('أسعار العملات الرقمية', 'Cryptocurrency Prices')}
+        </CardTitle>
         
-        <CryptoDataSourceBadge 
-          loading={loading} 
-          data={data} 
-          isRealtime={isRealtime} 
-          dataSource={dataSource} 
-        />
-        
-        <CryptoSourceProviderBadge 
-          loading={loading} 
-          dataSource={dataSource} 
-        />
-        
-        {/* Add real-time status badge */}
-        {!loading && data && (
-          <Badge 
+        <div className="flex items-center space-x-2 rtl:space-x-reverse">
+          {dataSource && <CryptoDataSourceBadge source={dataSource} isRealtime={isRealtime} />}
+          
+          <Button 
             variant="outline" 
-            className={isRealtime 
-              ? "bg-green-500/10 text-green-500 border-green-500" 
-              : "bg-orange-500/10 text-orange-500 border-orange-500"
-            }
-          >
-            {isRealtime 
-              ? <><Wifi className="h-3 w-3 mr-1" /> {t("بث مباشر", "Live")}</>
-              : <><WifiOff className="h-3 w-3 mr-1" /> {t("غير مباشر", "Not Live")}</>
-            }
-          </Badge>
-        )}
-        
-        {/* Add polling toggle button */}
-        {!loading && togglePolling && (
-          <Button
-            variant="ghost"
             size="sm"
-            onClick={togglePolling}
-            title={pollingEnabled 
-              ? t("إيقاف التحديث التلقائي", "Stop Auto-Refresh") 
-              : t("تمكين التحديث التلقائي", "Enable Auto-Refresh")
-            }
-            className={`text-xs ${pollingEnabled ? 'text-green-500' : 'text-gray-500'}`}
+            onClick={handleRefresh}
+            disabled={loading || isRefreshDisabled}
+            className="gap-2"
           >
-            {pollingEnabled 
-              ? t("تحديث تلقائي", "Auto") 
-              : t("تحديث يدوي", "Manual")
+            <RefreshCw 
+              className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} 
+            />
+            {t('تحديث', 'Refresh')}
+          </Button>
+          
+          <div className="flex items-center gap-2">
+            <Switch 
+              checked={pollingEnabled}
+              onCheckedChange={togglePolling}
+            />
+            <span className="text-sm whitespace-nowrap hidden md:inline-block">
+              {t('تحديث تلقائي', 'Auto refresh')}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-y-4">
+        <div className="flex flex-wrap items-center gap-4">
+          <CryptoSelector 
+            value={selectedCoin}
+            onChange={onCoinChange}
+          />
+          
+          <div className="inline-flex rounded-md shadow-sm">
+            {timeframeOptions.map((option) => (
+              <Button
+                key={option.value}
+                variant={selectedTimeframe === option.value ? "default" : "outline"}
+                className={`
+                  ${selectedTimeframe === option.value ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'} 
+                  first:rounded-l-md first:rounded-r-none last:rounded-r-md last:rounded-l-none rounded-none border-r-0 last:border-r 
+                  rtl:first:rounded-r-md rtl:first:rounded-l-none rtl:last:rounded-l-md rtl:last:rounded-r-none
+                `}
+                onClick={() => onTimeframeChange(option.value)}
+                size="sm"
+              >
+                {option.label}
+              </Button>
+            ))}
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <CryptoFilter 
+            options={filterOptions}
+            onChange={onFilterChange}
+          >
+            <Button variant="outline" size="sm" className="gap-2">
+              <ChevronDown className="h-4 w-4" />
+              {t('تصفية', 'Filter')}
+            </Button>
+          </CryptoFilter>
+          
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={toggleWatchlist}
+            className="gap-2"
+          >
+            <FileBarChart className="h-4 w-4" />
+            {showWatchlist 
+              ? t('إخفاء المفضلة', 'Hide Watchlist') 
+              : t('عرض المفضلة', 'Show Watchlist')
             }
           </Button>
-        )}
+        </div>
       </div>
       
-      <div className="flex items-center gap-2">
-        <Button 
-          variant="outline" 
-          size="icon" 
-          onClick={toggleWatchlist} 
-          title={t('إظهار/إخفاء قائمة المراقبة', 'Toggle Watchlist')}
-        >
-          <Star className={`h-4 w-4 ${showWatchlist ? 'fill-yellow-400 text-yellow-400' : ''}`} />
-        </Button>
-        
-        <Button 
-          variant="outline" 
-          size="icon" 
-          onClick={handleRefresh} 
-          disabled={loading}
-          title={t('تحديث البيانات', 'Refresh Data')}
-        >
-          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-        </Button>
-        
-        <CryptoSelector 
-          selectedCoin={selectedCoin}
-          onCoinChange={onCoinChange}
-          selectedTimeframe={selectedTimeframe}
-          onTimeframeChange={onTimeframeChange}
-          filterOptions={filterOptions}
-          onFilterChange={onFilterChange}
-        />
-        
-        {!loading && data && (
-          <WatchlistButton 
-            coinId={selectedCoin} 
-            size="icon"
-            variant="outline"
-          />
+      <CardDescription className="mt-4">
+        {t(
+          'يعرض سعر الصرف التاريخي والحالي، وحجم التداول، بيانات السوق للعملات الرقمية',
+          'Shows historical and current exchange rates, trading volume, and market data for cryptocurrencies'
         )}
-      </div>
+      </CardDescription>
     </CardHeader>
   );
 };
 
-export default CryptoHeader;
+export default memo(CryptoHeader);

@@ -1,6 +1,7 @@
 
 /**
  * Generates mock cryptocurrency data for testing and fallback purposes
+ * With improved consistency and stability to prevent UI flickering
  */
 export function generateMockData(coinId: string, days: string, currency: string) {
   console.log(`Generating mock data for ${coinId}, days: ${days}, currency: ${currency}`);
@@ -14,7 +15,7 @@ export function generateMockData(coinId: string, days: string, currency: string)
   const volumes: [number, number][] = [];
   const marketCaps: [number, number][] = [];
   
-  // Base price varies by coin
+  // Base price varies by coin - consistent base values
   let basePrice = 0;
   switch (coinId.toLowerCase()) {
     case 'bitcoin':
@@ -34,19 +35,23 @@ export function generateMockData(coinId: string, days: string, currency: string)
   }
   
   // Number of data points - approximately 1 per hour for the requested days
-  // But set some reasonable limits to avoid performance issues
+  // But set reasonable limits to avoid performance issues
   const hoursPerDay = 24;
   const requestedDataPoints = parseInt(days) * hoursPerDay;
-  const maxDataPoints = 500;
-  const dataPoints = Math.min(requestedDataPoints, maxDataPoints);
+  
+  // Fixed maximum data points to ensure consistent performance
+  const maxDataPoints = Math.min(500, requestedDataPoints);
+  const dataPoints = Math.max(24, maxDataPoints); // At least 24 data points
   const timeStep = daysMs / dataPoints;
   
-  // Use consistent seed for the same coin and timeframe to avoid fluctuations
-  // when re-rendering components
-  const seed = coinId + days + currency;
+  // Use a consistent seed based on coinId, days, and current day
+  // This ensures mock data remains relatively stable during a user session
+  // but can change day-to-day for variety
+  const currentDay = Math.floor(currentTime / (24 * 60 * 60 * 1000));
+  const seed = coinId + days + currency + currentDay.toString();
   const seedNum = Array.from(seed).reduce((acc, char) => acc + char.charCodeAt(0), 0);
   
-  // Simple seeded random function
+  // Simple seeded random function with improved consistency
   let seedValue = seedNum;
   const seededRandom = () => {
     seedValue = (seedValue * 9301 + 49297) % 233280;
@@ -58,24 +63,29 @@ export function generateMockData(coinId: string, days: string, currency: string)
   let currentVolume = basePrice * 10000;
   let currentMarketCap = basePrice * 1000000;
   
-  // Create the data points with some random fluctuations
+  // Create the data points with more consistent random fluctuations
   for (let i = 0; i < dataPoints; i++) {
     const timestamp = startTime + i * timeStep;
     
-    // Add some random price changes
-    const priceChange = (seededRandom() - 0.48) * 0.02 * currentPrice; // Slightly biased upward
+    // Use smaller price changes to reduce volatility
+    const priceChange = (seededRandom() - 0.5) * 0.01 * currentPrice;
     currentPrice += priceChange;
-    currentPrice = Math.max(currentPrice, basePrice * 0.7); // Prevent too low prices
     
-    // Volume fluctuates more randomly
-    const volumeChange = (seededRandom() - 0.5) * 0.1 * currentVolume;
+    // Ensure price stays within reasonable bounds
+    currentPrice = Math.max(currentPrice, basePrice * 0.85);
+    currentPrice = Math.min(currentPrice, basePrice * 1.15);
+    
+    // Volume fluctuates with more consistency
+    const volumeChange = (seededRandom() - 0.5) * 0.05 * currentVolume;
     currentVolume += volumeChange;
-    currentVolume = Math.max(currentVolume, basePrice * 5000);
+    currentVolume = Math.max(currentVolume, basePrice * 8000);
+    currentVolume = Math.min(currentVolume, basePrice * 12000);
     
-    // Market cap follows price but with some lag
-    const marketCapChange = priceChange * 800000 + (seededRandom() - 0.5) * 0.005 * currentMarketCap;
+    // Market cap follows price but with less volatility
+    const marketCapChange = priceChange * 800000 + (seededRandom() - 0.5) * 0.002 * currentMarketCap;
     currentMarketCap += marketCapChange;
-    currentMarketCap = Math.max(currentMarketCap, basePrice * 500000);
+    currentMarketCap = Math.max(currentMarketCap, basePrice * 800000);
+    currentMarketCap = Math.min(currentMarketCap, basePrice * 1200000);
     
     prices.push([timestamp, currentPrice]);
     volumes.push([timestamp, currentVolume]);
@@ -84,11 +94,11 @@ export function generateMockData(coinId: string, days: string, currency: string)
   
   // Calculate a 24h change percentage
   const lastPrice = prices[prices.length - 1][1];
-  const dayAgoIndex = Math.max(0, prices.length - 24);
+  const dayAgoIndex = Math.max(0, prices.length - hoursPerDay);
   const dayAgoPrice = prices[dayAgoIndex][1];
   const percentChange24h = ((lastPrice - dayAgoPrice) / dayAgoPrice) * 100;
   
-  // Build the response object
+  // Build the response object with consistent metadata
   return {
     id: coinId,
     symbol: coinId.substring(0, 3).toUpperCase(),
@@ -106,7 +116,7 @@ export function generateMockData(coinId: string, days: string, currency: string)
       last_updated: new Date().toISOString(),
     },
     isMockData: true,
-    dataSource: "mock",
+    dataSource: "mock-stable",
     fetchedAt: new Date().toISOString()
   };
 }

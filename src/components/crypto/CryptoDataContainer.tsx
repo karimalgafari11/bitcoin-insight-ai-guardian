@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from '@/components/ui/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { CryptoFilterOptions, DEFAULT_FILTER_OPTIONS } from '@/types/filters';
@@ -20,7 +20,12 @@ const CryptoDataContainer: React.FC<CryptoDataContainerProps> = ({ defaultCoin =
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [filterOptions, setFilterOptions] = useState<CryptoFilterOptions>(DEFAULT_FILTER_OPTIONS);
   const [showWatchlist, setShowWatchlist] = useState(false);
+  
+  // Enhanced refs for better tracking and limiting
   const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const refreshCooldownRef = useRef<boolean>(false);
+  const refreshCountRef = useRef<number>(0);
+  const lastRefreshTimeRef = useRef<number>(Date.now());
   
   const { 
     data, 
@@ -34,6 +39,17 @@ const CryptoDataContainer: React.FC<CryptoDataContainerProps> = ({ defaultCoin =
     togglePolling
   } = useCryptoData(selectedCoin, timeframe);
 
+  // Reset refresh count periodically
+  useEffect(() => {
+    const resetTimer = setInterval(() => {
+      refreshCountRef.current = 0;
+    }, 60000); // Reset count every minute
+    
+    return () => {
+      clearInterval(resetTimer);
+    };
+  }, []);
+
   // Use useCallback to prevent re-creations of event handlers
   const handleCoinChange = useCallback((value: string) => {
     setSelectedCoin(value);
@@ -44,23 +60,52 @@ const CryptoDataContainer: React.FC<CryptoDataContainerProps> = ({ defaultCoin =
   }, []);
   
   const handleRefresh = useCallback(() => {
-    // Prevent multiple rapid refresh requests
-    if (refreshTimeoutRef.current) {
-      clearTimeout(refreshTimeoutRef.current);
+    const now = Date.now();
+    
+    // Implement increasingly stringent rate limits to prevent excessive refreshing
+    if (refreshCooldownRef.current) {
+      toast({
+        title: t('يرجى الانتظار', 'Please wait'),
+        description: t('يرجى الانتظار قبل تحديث البيانات مرة أخرى', 'Please wait before refreshing again'),
+        variant: 'destructive',
+      });
+      return;
     }
     
+    // Increase cooldown period based on refresh frequency
+    refreshCountRef.current++;
+    const timeSinceLastRefresh = now - lastRefreshTimeRef.current;
+    
+    // If user is refreshing too frequently, enforce a longer cooldown
+    let cooldownPeriod = 3000; // Default cooldown: 3 seconds
+    
+    if (refreshCountRef.current > 5 && timeSinceLastRefresh < 30000) {
+      cooldownPeriod = 10000; // 10 seconds if more than 5 refreshes in 30 seconds
+    } else if (refreshCountRef.current > 2 && timeSinceLastRefresh < 10000) {
+      cooldownPeriod = 5000; // 5 seconds if more than 2 refreshes in 10 seconds
+    }
+    
+    // Execute the refresh
     refreshData();
     setLastRefresh(new Date());
+    lastRefreshTimeRef.current = now;
     
     toast({
       title: t('تحديث البيانات', 'Data Refresh'),
       description: t('جاري تحديث البيانات...', 'Refreshing data...'),
     });
     
-    // Set a cooldown period for refresh button
+    // Set cooldown state and timer
+    refreshCooldownRef.current = true;
+    
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current);
+    }
+    
     refreshTimeoutRef.current = setTimeout(() => {
       refreshTimeoutRef.current = null;
-    }, 3000);
+      refreshCooldownRef.current = false;
+    }, cooldownPeriod);
   }, [refreshData, t]);
 
   const handleFilterChange = useCallback((newFilters: CryptoFilterOptions) => {
@@ -97,6 +142,7 @@ const CryptoDataContainer: React.FC<CryptoDataContainerProps> = ({ defaultCoin =
           onTimeframeChange={handleTimeframeChange}
           filterOptions={filterOptions}
           onFilterChange={handleFilterChange}
+          isRefreshDisabled={refreshCooldownRef.current}
         />
         
         <CryptoContent

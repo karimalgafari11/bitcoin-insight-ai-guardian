@@ -14,6 +14,7 @@ interface UseCryptoDataFetchProps {
   abortControllerRef: React.MutableRefObject<AbortController | null>;
   instanceIdRef: React.MutableRefObject<string>;
   lastFetchRef: React.MutableRefObject<number>;
+  lastDataHashRef: React.MutableRefObject<string>;
   setLoading: React.Dispatch<React.SetStateAction<boolean>>;
   setError: React.Dispatch<React.SetStateAction<string | null>>;
   setData: React.Dispatch<React.SetStateAction<CryptoMarketData | null>>;
@@ -34,6 +35,7 @@ export function useCryptoDataFetch({
   abortControllerRef,
   instanceIdRef,
   lastFetchRef,
+  lastDataHashRef,
   setLoading,
   setError,
   setData,
@@ -43,13 +45,20 @@ export function useCryptoDataFetch({
   setLastRefresh,
   setPollingEnabled
 }: UseCryptoDataFetchProps) {
-  // Function to fetch data
+  // Function to generate a simple hash for comparing data
+  const generateDataHash = (data: CryptoMarketData | null): string => {
+    if (!data || !data.prices || data.prices.length === 0) return '';
+    const lastPrice = data.prices[data.prices.length - 1];
+    return `${data.id || coinId}-${lastPrice?.[0]}-${lastPrice?.[1]}-${data.dataSource}`;
+  };
+
+  // Enhanced fetch function with better data change detection and error handling
   const fetchCryptoDataCallback = useCallback(async (force = false) => {
     // Don't fetch again if we're already loading, unless force=true
     if (loading && !force) return;
     
     const now = Date.now();
-    // Rate limit our requests - only fetch again if it's been at least 30 seconds
+    // Rate limit our requests - only fetch again if it's been at least CACHE_TTL
     // unless params have changed or force=true
     const hasParamsChanged = 
       paramsRef.current.coinId !== coinId ||
@@ -70,31 +79,45 @@ export function useCryptoDataFetch({
     }
     abortControllerRef.current = new AbortController();
     
-    setLoading(true);
+    let shouldShowLoading = !data;
+    if (shouldShowLoading) {
+      setLoading(true);
+    }
     setError(null);
 
     try {
-      // Use any cached data we have while fetching to provide a smooth experience
+      // Request data with force flag if specified
       const result = await fetchCryptoData(coinId, days, currency, force);
       
       // Only update state if component is still mounted
       if (!mountedRef.current) return;
       
       if (result.data) {
-        setData(result.data);
+        // Check if the data has actually changed to prevent unnecessary re-renders
+        const newDataHash = generateDataHash(result.data);
+        const dataChanged = newDataHash !== lastDataHashRef.current;
         
-        // Always set isRealtime to true for fresh data that's not mock data
-        const isRealtimeData = !result.data.isMockData && !result.fromCache;
-        setIsRealtime(isRealtimeData);
-        
-        setDataSource(result.data.dataSource || "unknown");
-        setLastUpdated(result.data.fetchedAt || new Date().toISOString());
-        lastFetchRef.current = now;
-        setLastRefresh(new Date());
-        
-        // If we're getting real data, make sure polling is enabled
-        if (!result.data.isMockData) {
-          setPollingEnabled(true);
+        if (dataChanged || force) {
+          console.log(`Data ${dataChanged ? 'changed' : 'force updated'}, updating state`);
+          lastDataHashRef.current = newDataHash;
+          
+          setData(result.data);
+          
+          // Set isRealtime appropriately
+          const isRealtimeData = !result.data.isMockData && !result.fromCache;
+          setIsRealtime(isRealtimeData);
+          
+          setDataSource(result.data.dataSource || "unknown");
+          setLastUpdated(result.data.fetchedAt || new Date().toISOString());
+          lastFetchRef.current = now;
+          setLastRefresh(new Date());
+          
+          // If we're getting real data, make sure polling is enabled
+          if (!result.data.isMockData) {
+            setPollingEnabled(true);
+          }
+        } else {
+          console.log('Data has not changed, skipping state update');
         }
       } else if (result.error) {
         setError(result.error);
@@ -107,11 +130,11 @@ export function useCryptoDataFetch({
       }
     } finally {
       // Only update loading state if component is still mounted
-      if (mountedRef.current) {
+      if (mountedRef.current && shouldShowLoading) {
         setLoading(false);
       }
     }
-  }, [coinId, days, currency, loading, mountedRef, paramsRef, abortControllerRef, instanceIdRef, lastFetchRef, setLoading, setError, setData, setIsRealtime, setDataSource, setLastUpdated, setLastRefresh, setPollingEnabled]);
+  }, [coinId, days, currency, loading, data, mountedRef, paramsRef, abortControllerRef, instanceIdRef, lastFetchRef, lastDataHashRef, setLoading, setError, setData, setIsRealtime, setDataSource, setLastUpdated, setLastRefresh, setPollingEnabled]);
 
   return { fetchCryptoDataCallback };
 }

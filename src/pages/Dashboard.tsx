@@ -19,7 +19,12 @@ const Dashboard = () => {
   const [currentTimeframe, setCurrentTimeframe] = useState<"4h" | "1d" | "1w" | "1m">("1d");
   const [refreshKey, setRefreshKey] = useState(0);
   const [hasBinanceKey, setHasBinanceKey] = useState(false);
+  
+  // Enhanced refs for better tracking refresh behavior
   const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const refreshCooldownRef = useRef<boolean>(false);
+  const refreshCountRef = useRef<number>(0);
+  const lastRefreshTimeRef = useRef<number>(Date.now());
   const initialRenderRef = useRef(true);
 
   // Check for Binance API keys on component mount only
@@ -43,26 +48,72 @@ const Dashboard = () => {
     }
   }, [t]);
 
+  // Reset refresh count periodically
+  useEffect(() => {
+    const resetTimer = setInterval(() => {
+      refreshCountRef.current = 0;
+    }, 120000); // Reset count every 2 minutes
+    
+    return () => {
+      clearInterval(resetTimer);
+    };
+  }, []);
+
   const handleTimeframeChange = useCallback((timeframe: "4h" | "1d" | "1w" | "1m") => {
     setCurrentTimeframe(timeframe);
   }, []);
 
   const handleRefreshAll = useCallback(() => {
-    // Prevent rapid multiple refreshes
-    if (refreshTimeoutRef.current) {
+    const now = Date.now();
+    
+    // Enforce rate limiting to prevent excessive refreshes
+    if (refreshCooldownRef.current) {
+      toast({
+        title: t("يرجى الانتظار", "Please Wait"),
+        description: t(
+          "يرجى الانتظار قبل التحديث مرة أخرى",
+          "Please wait before refreshing again"
+        ),
+        variant: "destructive",
+      });
       return;
     }
     
+    // Increase refresh count and track time
+    refreshCountRef.current++;
+    const timeSinceLastRefresh = now - lastRefreshTimeRef.current;
+    lastRefreshTimeRef.current = now;
+    
+    // Determine cooldown period based on refresh frequency
+    let cooldownPeriod = 5000; // 5 seconds default
+    
+    if (refreshCountRef.current > 5 && timeSinceLastRefresh < 60000) {
+      cooldownPeriod = 20000; // 20 seconds cooldown for frequent refreshes
+    } else if (refreshCountRef.current > 2 && timeSinceLastRefresh < 15000) {
+      cooldownPeriod = 10000; // 10 seconds for moderate frequency
+    }
+    
+    // Execute refresh
     setRefreshKey(prev => prev + 1);
+    
     toast({
       title: t("تحديث البيانات", "Refreshing Data"),
       description: t("جاري تحديث جميع البيانات...", "Refreshing all data..."),
     });
     
-    // Set a cooldown period to prevent spam refreshing
+    // Set cooldown state
+    refreshCooldownRef.current = true;
+    
+    // Clear any existing timeout
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current);
+    }
+    
+    // Set new cooldown timeout
     refreshTimeoutRef.current = setTimeout(() => {
       refreshTimeoutRef.current = null;
-    }, 5000);
+      refreshCooldownRef.current = false;
+    }, cooldownPeriod);
   }, [t]);
 
   return (
@@ -85,7 +136,7 @@ const Dashboard = () => {
                 size="sm"
                 onClick={handleRefreshAll}
                 className="gap-2"
-                disabled={refreshTimeoutRef.current !== null}
+                disabled={refreshCooldownRef.current}
               >
                 <RefreshCw className={`h-4 w-4 ${refreshTimeoutRef.current ? 'animate-spin' : ''}`} />
                 {t("تحديث الكل", "Refresh All")}
