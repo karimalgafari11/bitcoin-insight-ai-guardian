@@ -1,6 +1,7 @@
 
 import { fetchFromBinance } from "./apis/binance.ts";
 import { fetchFromCoinGecko } from "./apis/coinGecko.ts";
+import { fetchFromPublicApis } from "./apis/publicApis.ts";
 import { generateMockData } from "./utils/mockDataGenerator.ts";
 
 /**
@@ -42,6 +43,19 @@ export async function fetchCryptoData(coinId: string, days: string, currency: st
   } catch (coinGeckoError) {
     console.error("CoinGecko fetch failed:", coinGeckoError);
     console.error("Detailed CoinGecko fetch error:", coinGeckoError);
+  }
+  
+  // Try public APIs as our third source
+  try {
+    console.log("Attempting to fetch from public APIs");
+    const publicApiData = await fetchFromPublicApis(coinId, days, currency);
+    return {
+      ...publicApiData,
+      isMockData: false,
+      dataSource: "public-api"
+    };
+  } catch (publicApiError) {
+    console.error("Public APIs fetch failed:", publicApiError);
   }
   
   // As a last resort, return mock data
