@@ -2,7 +2,6 @@
 import React from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import CryptoFilter from './CryptoFilter';
 import { CryptoFilterOptions, DEFAULT_FILTER_OPTIONS } from '@/types/filters';
 
 interface CryptoSelectorProps {
@@ -52,11 +51,6 @@ const CryptoSelector: React.FC<CryptoSelectorProps> = ({
           </SelectContent>
         </Select>
       </div>
-      
-      <CryptoFilter
-        filterOptions={filterOptions}
-        onFilterChange={onFilterChange}
-      />
     </div>
   );
 };

@@ -21,6 +21,7 @@ export interface CryptoMarketData {
   cacheTime?: string;
   needsRefresh?: boolean;
   broadcastTimestamp?: string;
+  symbol?: string;  // Added missing property to fix type error
 }
 
 export interface UseCryptoDataResult {

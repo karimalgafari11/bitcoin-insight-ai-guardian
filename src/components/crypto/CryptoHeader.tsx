@@ -67,7 +67,7 @@ const CryptoHeader: React.FC<CryptoHeaderProps> = ({
         </CardTitle>
         
         <div className="flex items-center space-x-2 rtl:space-x-reverse">
-          {dataSource && <CryptoDataSourceBadge dataSource={dataSource} isRealtime={isRealtime} />}
+          {dataSource && <CryptoDataSourceBadge loading={loading} data={data} isRealtime={isRealtime} dataSource={dataSource} />}
           
           <Button 
             variant="outline" 
@@ -98,7 +98,11 @@ const CryptoHeader: React.FC<CryptoHeaderProps> = ({
         <div className="flex flex-wrap items-center gap-4">
           <CryptoSelector 
             selectedCoin={selectedCoin}
-            onSelect={onCoinChange}
+            onCoinChange={onCoinChange}
+            selectedTimeframe={selectedTimeframe}
+            onTimeframeChange={onTimeframeChange}
+            filterOptions={filterOptions}
+            onFilterChange={onFilterChange}
           />
           
           <div className="inline-flex rounded-md shadow-sm">
@@ -121,15 +125,20 @@ const CryptoHeader: React.FC<CryptoHeaderProps> = ({
         </div>
         
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline" 
+            size="sm"
+            onClick={() => onFilterChange({...filterOptions, showFilters: !filterOptions.showFilters})}
+            className="gap-2"
+          >
+            <ChevronDown className="h-4 w-4" />
+            {t('تصفية', 'Filter')}
+          </Button>
+          
           <CryptoFilter 
             filterOptions={filterOptions}
             onFilterChange={onFilterChange}
-          >
-            <Button variant="outline" size="sm" className="gap-2">
-              <ChevronDown className="h-4 w-4" />
-              {t('تصفية', 'Filter')}
-            </Button>
-          </CryptoFilter>
+          />
           
           <Button 
             variant="outline" 

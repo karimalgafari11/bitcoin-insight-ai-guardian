@@ -49,7 +49,9 @@ export function useCryptoDataFetch({
   const generateDataHash = (cryptoData: CryptoMarketData | null): string => {
     if (!cryptoData || !cryptoData.prices || cryptoData.prices.length === 0) return '';
     const lastPrice = cryptoData.prices[cryptoData.prices.length - 1];
-    return `${cryptoData.symbol || coinId}-${lastPrice?.[0]}-${lastPrice?.[1]}-${cryptoData.dataSource}`;
+    // Use metadata.symbol or symbol or fallback to coinId
+    const symbolToUse = cryptoData.metadata?.symbol || cryptoData.symbol || coinId;
+    return `${symbolToUse}-${lastPrice?.[0]}-${lastPrice?.[1]}-${cryptoData.dataSource}`;
   };
 
   // Enhanced fetch function with better data change detection and error handling

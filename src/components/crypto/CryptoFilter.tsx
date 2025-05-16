@@ -59,94 +59,79 @@ const CryptoFilter: React.FC<CryptoFilterProps> = ({
     }
   };
 
-  const toggleFilters = () => {
-    onFilterChange({
-      ...filterOptions,
-      showFilters: !showFilters
-    });
-  };
-
+  if (!showFilters) {
+    return null;
+  }
+  
   return (
     <div className="w-full">
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={toggleFilters}
-        className="mb-2 w-full flex items-center justify-between"
-      >
-        <span>{t('تصفية', 'Filters')}</span>
-        {showFilters ? <Filter className="h-4 w-4" /> : <SlidersHorizontal className="h-4 w-4" />}
-      </Button>
-      
-      {showFilters && (
-        <div className="bg-card border rounded-md p-3 shadow-sm space-y-4 mb-2">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium">
-                {t('نطاق السعر', 'Price Range')} (USD)
-              </label>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  value={priceRange.min}
-                  onChange={(e) => handlePriceInputChange('min', e.target.value)}
-                  className="h-7 w-20 text-xs"
-                  min={0}
-                />
-                <span className="text-xs">-</span>
-                <Input
-                  type="number"
-                  value={priceRange.max}
-                  onChange={(e) => handlePriceInputChange('max', e.target.value)}
-                  className="h-7 w-20 text-xs"
-                  min={0}
-                />
-              </div>
+      <div className="bg-card border rounded-md p-3 shadow-sm space-y-4 mb-2">
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium">
+              {t('نطاق السعر', 'Price Range')} (USD)
+            </label>
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                value={priceRange.min}
+                onChange={(e) => handlePriceInputChange('min', e.target.value)}
+                className="h-7 w-20 text-xs"
+                min={0}
+              />
+              <span className="text-xs">-</span>
+              <Input
+                type="number"
+                value={priceRange.max}
+                onChange={(e) => handlePriceInputChange('max', e.target.value)}
+                className="h-7 w-20 text-xs"
+                min={0}
+              />
             </div>
-            <Slider
-              defaultValue={[priceRange.min, priceRange.max]}
-              max={100000}
-              step={100}
-              value={[priceRange.min, priceRange.max]}
-              onValueChange={handlePriceChange}
-              className="mt-2"
-            />
           </div>
-          
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium">
-                {t('القيمة السوقية', 'Market Cap')} (USD)
-              </label>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  value={marketCapRange.min}
-                  onChange={(e) => handleMarketCapInputChange('min', e.target.value)}
-                  className="h-7 w-20 text-xs"
-                  min={0}
-                />
-                <span className="text-xs">-</span>
-                <Input
-                  type="number"
-                  value={marketCapRange.max}
-                  onChange={(e) => handleMarketCapInputChange('max', e.target.value)}
-                  className="h-7 w-20 text-xs"
-                  min={0}
-                />
-              </div>
-            </div>
-            <Slider
-              defaultValue={[marketCapRange.min, marketCapRange.max]}
-              max={1000000000000}
-              step={1000000000}
-              value={[marketCapRange.min, marketCapRange.max]}
-              onValueChange={handleMarketCapChange}
-              className="mt-2"
-            />
-          </div>
+          <Slider
+            defaultValue={[priceRange.min, priceRange.max]}
+            max={100000}
+            step={100}
+            value={[priceRange.min, priceRange.max]}
+            onValueChange={handlePriceChange}
+            className="mt-2"
+          />
         </div>
-      )}
+        
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium">
+              {t('القيمة السوقية', 'Market Cap')} (USD)
+            </label>
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                value={marketCapRange.min}
+                onChange={(e) => handleMarketCapInputChange('min', e.target.value)}
+                className="h-7 w-20 text-xs"
+                min={0}
+              />
+              <span className="text-xs">-</span>
+              <Input
+                type="number"
+                value={marketCapRange.max}
+                onChange={(e) => handleMarketCapInputChange('max', e.target.value)}
+                className="h-7 w-20 text-xs"
+                min={0}
+              />
+            </div>
+          </div>
+          <Slider
+            defaultValue={[marketCapRange.min, marketCapRange.max]}
+            max={1000000000000}
+            step={1000000000}
+            value={[marketCapRange.min, marketCapRange.max]}
+            onValueChange={handleMarketCapChange}
+            className="mt-2"
+          />
+        </div>
+      </div>
     </div>
   );
 };
