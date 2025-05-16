@@ -46,10 +46,10 @@ export function useCryptoDataFetch({
   setPollingEnabled
 }: UseCryptoDataFetchProps) {
   // Function to generate a simple hash for comparing data
-  const generateDataHash = (data: CryptoMarketData | null): string => {
-    if (!data || !data.prices || data.prices.length === 0) return '';
-    const lastPrice = data.prices[data.prices.length - 1];
-    return `${data.id || coinId}-${lastPrice?.[0]}-${lastPrice?.[1]}-${data.dataSource}`;
+  const generateDataHash = (cryptoData: CryptoMarketData | null): string => {
+    if (!cryptoData || !cryptoData.prices || cryptoData.prices.length === 0) return '';
+    const lastPrice = cryptoData.prices[cryptoData.prices.length - 1];
+    return `${cryptoData.symbol || coinId}-${lastPrice?.[0]}-${lastPrice?.[1]}-${cryptoData.dataSource}`;
   };
 
   // Enhanced fetch function with better data change detection and error handling
@@ -79,13 +79,26 @@ export function useCryptoDataFetch({
     }
     abortControllerRef.current = new AbortController();
     
-    let shouldShowLoading = !data;
-    if (shouldShowLoading) {
-      setLoading(true);
-    }
-    setError(null);
-
+    let shouldShowLoading = true; // Default to showing loading state
+    let currentData: CryptoMarketData | null = null;
+    
     try {
+      // Get the current data to check if we need to show loading
+      currentData = await new Promise(resolve => {
+        setData(existingData => {
+          resolve(existingData);
+          return existingData;
+        });
+      });
+      
+      // Only show loading if we don't have any data yet
+      shouldShowLoading = !currentData;
+      
+      if (shouldShowLoading) {
+        setLoading(true);
+      }
+      setError(null);
+
       // Request data with force flag if specified
       const result = await fetchCryptoData(coinId, days, currency, force);
       
@@ -134,7 +147,7 @@ export function useCryptoDataFetch({
         setLoading(false);
       }
     }
-  }, [coinId, days, currency, loading, data, mountedRef, paramsRef, abortControllerRef, instanceIdRef, lastFetchRef, lastDataHashRef, setLoading, setError, setData, setIsRealtime, setDataSource, setLastUpdated, setLastRefresh, setPollingEnabled]);
+  }, [coinId, days, currency, loading, mountedRef, paramsRef, abortControllerRef, instanceIdRef, lastFetchRef, lastDataHashRef, setLoading, setError, setData, setIsRealtime, setDataSource, setLastUpdated, setLastRefresh, setPollingEnabled]);
 
   return { fetchCryptoDataCallback };
 }

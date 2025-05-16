@@ -67,7 +67,7 @@ const CryptoHeader: React.FC<CryptoHeaderProps> = ({
         </CardTitle>
         
         <div className="flex items-center space-x-2 rtl:space-x-reverse">
-          {dataSource && <CryptoDataSourceBadge source={dataSource} isRealtime={isRealtime} />}
+          {dataSource && <CryptoDataSourceBadge dataSource={dataSource} isRealtime={isRealtime} />}
           
           <Button 
             variant="outline" 
@@ -97,8 +97,8 @@ const CryptoHeader: React.FC<CryptoHeaderProps> = ({
       <div className="flex flex-wrap items-center justify-between gap-y-4">
         <div className="flex flex-wrap items-center gap-4">
           <CryptoSelector 
-            value={selectedCoin}
-            onChange={onCoinChange}
+            selectedCoin={selectedCoin}
+            onSelect={onCoinChange}
           />
           
           <div className="inline-flex rounded-md shadow-sm">
@@ -122,8 +122,8 @@ const CryptoHeader: React.FC<CryptoHeaderProps> = ({
         
         <div className="flex items-center gap-2">
           <CryptoFilter 
-            options={filterOptions}
-            onChange={onFilterChange}
+            filterOptions={filterOptions}
+            onFilterChange={onFilterChange}
           >
             <Button variant="outline" size="sm" className="gap-2">
               <ChevronDown className="h-4 w-4" />
