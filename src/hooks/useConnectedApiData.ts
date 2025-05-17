@@ -1,8 +1,15 @@
 
-import { useState, useEffect, useCallback } from 'react';
+/**
+ * هوك لاسترجاع البيانات من منصات API المتصلة
+ * يقوم بجلب البيانات من جميع المنصات التي تم إعداد مفاتيح API لها
+ * تم تحسينه باستخدام معالجة أخطاء أفضل ومزامنة WebSocket للتحديثات المباشرة
+ */
+
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useApiKeys } from '@/hooks/api-keys';
-import { useToast } from '@/components/ui/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useErrorHandler, ErrorSeverity } from '@/utils/errorHandling';
+import { WebSocketConnectionType, createWebSocketConnection } from '@/utils/crypto/websocketService';
 
 /**
  * واجهة بيانات ملخص API
@@ -18,15 +25,19 @@ export interface ApiDataSummary {
 
 /**
  * هوك لاسترجاع البيانات من منصات API المتصلة
- * يقوم بجلب البيانات من جميع المنصات التي تم إعداد مفاتيح API لها
  */
 export const useConnectedApiData = () => {
   const { t } = useLanguage();
-  const { toast } = useToast();
   const { apiKeys, connectionStates } = useApiKeys();
+  const { showError, catchPromiseError } = useErrorHandler();
+  
   const [apiData, setApiData] = useState<ApiDataSummary[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
+  
+  // مراجع للتعامل مع تحديثات الوقت الحقيقي
+  const wsConnectionsRef = useRef<Record<string, any>>({});
+  const activeRealTimeUpdatesRef = useRef<boolean>(true);
 
   /**
    * دالة موحدة لإجراء طلبات الواجهة البرمجية
@@ -37,19 +48,22 @@ export const useConnectedApiData = () => {
    * @returns بيانات الاستجابة أو يرمي استثناء
    */
   const fetchWithErrorHandling = async (url: string, options: RequestInit = {}) => {
-    const response = await fetch(url, options);
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`API error (${response.status}): ${errorText}`);
+    try {
+      const response = await fetch(url, options);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`خطأ API (${response.status}): ${errorText}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      throw error;
     }
-    
-    return await response.json();
   };
 
   /**
    * جلب البيانات من واجهة برمجة بينانس
-   * يستخدم نقاط نهاية مختلفة بناءً على نوع المنصة (حقيقية أو تجريبية)
    * 
    * @param platform - نوع المنصة (binance أو binance_testnet)
    * @param apiKey - مفتاح API المستخدم للمصادقة
@@ -66,8 +80,7 @@ export const useConnectedApiData = () => {
         headers: { 'X-MBX-APIKEY': apiKey }
       });
     } catch (error) {
-      console.error(`خطأ في جلب بيانات ${platform}:`, error);
-      throw new Error(`فشل الاتصال بـ ${platform === 'binance' ? 'بينانس' : 'تستنت بينانس'}`);
+      throw new Error(`فشل الاتصال بـ ${platform === 'binance' ? 'بينانس' : 'تستنت بينانس'}: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);
     }
   }, []);
 
@@ -83,8 +96,7 @@ export const useConnectedApiData = () => {
         headers: { 'X-CoinAPI-Key': apiKey }
       });
     } catch (error) {
-      console.error('خطأ في جلب بيانات CoinAPI:', error);
-      throw new Error('فشل الاتصال بـ CoinAPI');
+      throw new Error(`فشل الاتصال بـ CoinAPI: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);
     }
   }, []);
 
@@ -100,8 +112,7 @@ export const useConnectedApiData = () => {
         headers: { 'authorization': `Apikey ${apiKey}` }
       });
     } catch (error) {
-      console.error('خطأ في جلب بيانات CryptoCompare:', error);
-      throw new Error('فشل الاتصال بـ CryptoCompare');
+      throw new Error(`فشل الاتصال بـ CryptoCompare: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);
     }
   }, []);
 
@@ -126,8 +137,7 @@ export const useConnectedApiData = () => {
         })
       });
     } catch (error) {
-      console.error('خطأ في جلب بيانات LiveCoinWatch:', error);
-      throw new Error('فشل الاتصال بـ LiveCoinWatch');
+      throw new Error(`فشل الاتصال بـ LiveCoinWatch: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);
     }
   }, []);
 
@@ -141,10 +151,66 @@ export const useConnectedApiData = () => {
     try {
       return await fetchWithErrorHandling('https://api.coindesk.com/v1/bpi/currentprice.json');
     } catch (error) {
-      console.error('خطأ في جلب بيانات CoinDesk:', error);
-      throw new Error('فشل الاتصال بـ CoinDesk');
+      throw new Error(`فشل الاتصال بـ CoinDesk: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);
     }
   }, []);
+
+  /**
+   * معالج تحديثات الوقت الحقيقي
+   * يتم استدعاؤه عند استلام بيانات جديدة عبر WebSocket
+   */
+  const handleRealtimeUpdate = useCallback((platform: string, data: any) => {
+    if (!activeRealTimeUpdatesRef.current) return;
+    
+    setApiData(prevData => {
+      const updatedData = [...prevData];
+      const platformIndex = updatedData.findIndex(item => item.platform === platform);
+      
+      if (platformIndex !== -1) {
+        updatedData[platformIndex] = {
+          ...updatedData[platformIndex],
+          data,
+          lastUpdated: new Date().toISOString(),
+          error: null
+        };
+      }
+      
+      return updatedData;
+    });
+  }, []);
+
+  /**
+   * إعداد الاتصالات بالوقت الحقيقي للمنصات المدعومة
+   */
+  const setupRealtimeConnections = useCallback(() => {
+    // التنظيف أولاً
+    Object.values(wsConnectionsRef.current).forEach((connection: any) => {
+      if (connection && connection.disconnect) {
+        connection.disconnect();
+      }
+    });
+    
+    wsConnectionsRef.current = {};
+    
+    // إنشاء اتصالات جديدة للمنصات المتصلة
+    if (connectionStates.binance && apiKeys.binance) {
+      const wsConfig = {
+        symbol: 'btcusdt',
+        type: WebSocketConnectionType.TICKER,
+        market: 'binance',
+        reconnectAttempts: 5
+      };
+      
+      const connection = createWebSocketConnection(
+        wsConfig,
+        (data) => handleRealtimeUpdate('binance', data)
+      );
+      
+      wsConnectionsRef.current.binance = connection;
+    }
+    
+    // يمكن إضافة المزيد من الاتصالات هنا للمنصات الأخرى التي تدعم WebSocket
+  }, [connectionStates, apiKeys, handleRealtimeUpdate]);
 
   /**
    * دالة رئيسية لجلب البيانات من جميع المنصات المتصلة
@@ -152,6 +218,7 @@ export const useConnectedApiData = () => {
    */
   const fetchConnectedApiData = useCallback(async () => {
     setIsLoading(true);
+    
     // تحديد المنصات المتصلة من حالات الاتصال
     const connectedPlatforms = Object.keys(connectionStates).filter(
       platform => connectionStates[platform]
@@ -173,15 +240,45 @@ export const useConnectedApiData = () => {
           
           // تحديد دالة الجلب المناسبة لكل منصة
           if (platform === 'binance' || platform === 'binance_testnet') {
-            data = await fetchBinanceData(platform, apiKeys[platform]);
+            data = await catchPromiseError(
+              fetchBinanceData(platform, apiKeys[platform]),
+              { 
+                severity: ErrorSeverity.WARNING,
+                source: `api-${platform}`
+              }
+            );
           } else if (platform === 'coinapi') {
-            data = await fetchCoinApiData(apiKeys[platform]);
+            data = await catchPromiseError(
+              fetchCoinApiData(apiKeys[platform]),
+              { 
+                severity: ErrorSeverity.WARNING,
+                source: `api-${platform}`
+              }
+            );
           } else if (platform === 'cryptocompare') {
-            data = await fetchCryptoCompareData(apiKeys[platform]);
+            data = await catchPromiseError(
+              fetchCryptoCompareData(apiKeys[platform]),
+              { 
+                severity: ErrorSeverity.WARNING,
+                source: `api-${platform}`
+              }
+            );
           } else if (platform === 'livecoinwatch') {
-            data = await fetchLiveCoinWatchData(apiKeys[platform]);
+            data = await catchPromiseError(
+              fetchLiveCoinWatchData(apiKeys[platform]),
+              { 
+                severity: ErrorSeverity.WARNING,
+                source: `api-${platform}`
+              }
+            );
           } else if (platform === 'coindesk') {
-            data = await fetchCoinDeskData();
+            data = await catchPromiseError(
+              fetchCoinDeskData(),
+              { 
+                severity: ErrorSeverity.WARNING,
+                source: `api-${platform}`
+              }
+            );
           }
 
           // إرجاع بيانات مهيكلة للمنصة
@@ -190,7 +287,7 @@ export const useConnectedApiData = () => {
             isConnected: true,
             lastUpdated: new Date().toISOString(),
             data,
-            error: null
+            error: data ? null : `فشل جلب البيانات من ${platform}`
           };
         } catch (error) {
           // معالجة أخطاء جلب البيانات من منصة محددة
@@ -208,33 +305,66 @@ export const useConnectedApiData = () => {
       // انتظار إكمال جميع الوعود
       const results = await Promise.all(dataPromises);
       setApiData(results);
+      
+      // إعادة إنشاء اتصالات الوقت الحقيقي بعد التحديث الأولي
+      setupRealtimeConnections();
     } catch (err) {
-      // معالجة الأخطاء العامة وعرضها للمستخدم
-      toast({
-        title: t('خطأ', 'Error'),
-        description: t(
+      // معالجة الأخطاء العامة
+      showError({
+        message: t(
           'حدث خطأ أثناء جلب البيانات من المنصات المتصلة',
           'An error occurred while fetching data from connected platforms'
         ),
-        variant: 'destructive',
+        severity: ErrorSeverity.ERROR,
+        source: 'connected-api-data',
+        details: err
       });
-      console.error('خطأ في جلب بيانات API:', err);
     } finally {
       // إنهاء حالة التحميل وتحديث وقت التحديث الأخير
       setIsLoading(false);
       setLastRefreshed(new Date());
     }
-  }, [connectionStates, apiKeys, fetchBinanceData, fetchCoinApiData, fetchCryptoCompareData, fetchLiveCoinWatchData, fetchCoinDeskData, toast, t]);
+  }, [
+    connectionStates, 
+    apiKeys, 
+    fetchBinanceData, 
+    fetchCoinApiData, 
+    fetchCryptoCompareData, 
+    fetchLiveCoinWatchData, 
+    fetchCoinDeskData, 
+    showError,
+    t,
+    catchPromiseError,
+    setupRealtimeConnections
+  ]);
+
+  // تمكين/تعطيل تحديثات الوقت الحقيقي
+  const toggleRealTimeUpdates = useCallback((enabled: boolean) => {
+    activeRealTimeUpdatesRef.current = enabled;
+  }, []);
 
   // جلب البيانات الأولية عند تركيب المكون
   useEffect(() => {
+    // تعيين المرجع لتتبع ما إذا كان المكون مثبتًا
+    const isComponentMounted = true;
+    
     fetchConnectedApiData();
-  }, [connectionStates, fetchConnectedApiData]); // إعادة الجلب عند تغير حالات الاتصال
+    
+    return () => {
+      // تنظيف اتصالات WebSocket عند تفريغ المكون
+      Object.values(wsConnectionsRef.current).forEach((connection: any) => {
+        if (connection && connection.disconnect) {
+          connection.disconnect();
+        }
+      });
+    };
+  }, [connectionStates, fetchConnectedApiData]);
 
   return {
     apiData,
     isLoading,
     lastRefreshed,
-    refreshData: fetchConnectedApiData
+    refreshData: fetchConnectedApiData,
+    toggleRealTimeUpdates
   };
 };

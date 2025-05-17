@@ -1,134 +1,206 @@
 
-import { useState, useEffect } from "react";
-import { saveApiKey, getApiKey } from "@/services/apiKeyService";
-import { useToast } from "@/components/ui/use-toast";
-import { useLanguage } from "@/contexts/LanguageContext";
-
 /**
- * Hook for loading and saving API keys to localStorage
+ * هوك لإدارة تخزين مفاتيح API
+ * توفر واجهة موحدة للتعامل مع مفاتيح API سواء محليًا أو عبر Supabase
  */
-export const useApiKeyStorage = () => {
+import { useState, useEffect, useCallback } from 'react';
+import { useToast } from '@/hooks/use-toast';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { 
+  saveApiKey, saveApiKeyLocally, getApiKeyLocally, getApiKeys as fetchApiKeys
+} from '@/services/apiKeyService';
+import { useErrorHandler, ErrorSeverity } from '@/utils/errorHandling';
+
+export function useApiKeyStorage() {
   const { t } = useLanguage();
   const { toast } = useToast();
+  const { handleApiError } = useErrorHandler();
+  
   const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
-  const [apiSecret, setApiSecret] = useState("");
-  const [keysSaved, setKeysSaved] = useState(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  // Load saved API keys on mount
-  useEffect(() => {
-    const loadSavedApiKeys = () => {
-      try {
-        // Load main Binance key
-        const savedBinanceKey = getApiKey("binance_api_key");
-        if (savedBinanceKey) {
-          setApiKeys(prev => ({ ...prev, binance: savedBinanceKey }));
-          setKeysSaved(true);
-        }
-        
-        // Load Binance secret
-        const savedBinanceSecret = getApiKey("binance_api_secret");
-        if (savedBinanceSecret) {
-          setApiSecret(savedBinanceSecret);
-        }
-
-        // Load other API keys
-        const platforms = [
-          "binance_testnet", "coinapi", "coindesk", 
-          "cryptocompare", "livecoinwatch", "tradingview", "metatrader"
-        ];
-        
-        const savedKeys: Record<string, string> = {};
-        let hasKeys = false;
-        
-        platforms.forEach(platform => {
-          const key = getApiKey(`${platform}_api_key`);
-          if (key) {
-            savedKeys[platform] = key;
-            hasKeys = true;
+  /**
+   * تحميل المفاتيح المخزنة سابقًا من مصادر مختلفة
+   */
+  const loadSavedApiKeys = useCallback(async () => {
+    setIsLoading(true);
+    
+    try {
+      // محاولة الحصول على المفاتيح من Supabase أولاً
+      const apiKeysList = await fetchApiKeys();
+      
+      const savedKeys: Record<string, string> = {};
+      
+      // إذا تم الحصول على مفاتيح من Supabase، استخدمها
+      if (apiKeysList && apiKeysList.length > 0) {
+        // بالنسبة لمفاتيح Supabase، نحن نعلم أنها موجودة ولكن لا نخزن قيمها فعليًا هنا
+        apiKeysList.forEach(key => {
+          // نضع قيمة رمزية لنشير إلى أن المفتاح موجود
+          savedKeys[key.platform] = 'STORED_SECURELY';
+        });
+      } 
+      
+      // محاولة الحصول على مفاتيح من التخزين المحلي كنسخة احتياطية
+      const localPlatforms = ['binance', 'binance_testnet', 'coinapi', 'coindesk', 'cryptocompare', 'livecoinwatch'];
+      
+      localPlatforms.forEach(platform => {
+        if (!savedKeys[platform]) {
+          const localKey = getApiKeyLocally(`${platform}_api_key`);
+          if (localKey) {
+            savedKeys[platform] = localKey;
           }
+        }
+      });
+      
+      setApiKeys(savedKeys);
+    } catch (error) {
+      handleApiError(error, 'api-key-storage');
+      // الحفاظ على المفاتيح الموجودة إذا فشل التحميل
+    } finally {
+      setIsLoading(false);
+    }
+  }, [handleApiError]);
+
+  // تحميل المفاتيح المخزنة عند تركيب المكون
+  useEffect(() => {
+    loadSavedApiKeys();
+  }, [loadSavedApiKeys]);
+
+  /**
+   * حفظ مفتاح API للمنصة المحددة
+   */
+  const storeApiKey = useCallback(async (
+    platform: string, 
+    apiKey: string,
+    apiSecret?: string
+  ): Promise<boolean> => {
+    if (!platform || !apiKey) {
+      toast({
+        title: t('خطأ', 'Error'),
+        description: t('المنصة ومفتاح API مطلوبان', 'Platform and API key are required'),
+        variant: 'destructive',
+      });
+      return false;
+    }
+
+    setIsLoading(true);
+    
+    try {
+      // أولاً نحاول حفظ المفتاح بشكل آمن باستخدام Supabase
+      const result = await saveApiKey(platform, apiKey, apiSecret);
+      
+      if (result.success) {
+        // تحديث الحالة المحلية
+        setApiKeys(prev => ({
+          ...prev,
+          [platform]: 'STORED_SECURELY'
+        }));
+        
+        toast({
+          title: t('تم بنجاح', 'Success'),
+          description: t(
+            'تم حفظ مفتاح API بأمان', 
+            'API key has been securely saved'
+          ),
         });
         
-        if (hasKeys) {
-          setKeysSaved(true);
+        return true;
+      } else {
+        // إذا فشل الحفظ في Supabase، نحتفظ به محليًا كنسخة احتياطية
+        console.log('فشل الحفظ عبر Supabase، الاحتفاظ بالمفتاح محليًا', result.error);
+        
+        // حفظ المفتاح محليًا
+        saveApiKeyLocally(`${platform}_api_key`, apiKey);
+        
+        if (apiSecret) {
+          saveApiKeyLocally(`${platform}_api_secret`, apiSecret);
         }
         
-        // Merge with existing keys
-        setApiKeys(prev => ({ ...prev, ...savedKeys }));
-      } catch (error) {
-        console.error("Error loading saved API keys:", error);
-      }
-    };
-
-    loadSavedApiKeys();
-  }, []);
-
-  const saveApiKeyToStorage = (platform: string, key: string, secret?: string) => {
-    try {
-      if (!key || key.trim() === "") {
+        // تحديث الحالة المحلية
+        setApiKeys(prev => ({
+          ...prev,
+          [platform]: apiKey
+        }));
+        
         toast({
-          title: t("خطأ", "Error"),
+          title: t('تم الحفظ محليًا', 'Saved Locally'),
           description: t(
-            `يجب إدخال مفتاح API لـ ${platform}`,
-            `API key for ${platform} cannot be empty`
+            'تم حفظ مفتاح API محليًا. للحماية القصوى، حاول الاتصال بـ Supabase',
+            'API key saved locally. For maximum protection, try connecting to Supabase'
           ),
-          variant: "destructive",
+          variant: 'warning',
+        });
+        
+        return true;
+      }
+    } catch (error) {
+      handleApiError(error, 'api-key-storage');
+      
+      // محاولة التخزين المحلي كملاذ أخير
+      try {
+        saveApiKeyLocally(`${platform}_api_key`, apiKey);
+        
+        if (apiSecret) {
+          saveApiKeyLocally(`${platform}_api_secret`, apiSecret);
+        }
+        
+        setApiKeys(prev => ({
+          ...prev,
+          [platform]: apiKey
+        }));
+        
+        toast({
+          title: t('تم الحفظ محليًا', 'Saved Locally'),
+          description: t(
+            'تم حفظ مفتاح API محليًا بسبب خطأ',
+            'API key saved locally due to an error'
+          ),
+          variant: 'warning',
+        });
+        
+        return true;
+      } catch (localError) {
+        toast({
+          title: t('خطأ', 'Error'),
+          description: t(
+            'فشل حفظ مفتاح API',
+            'Failed to save API key'
+          ),
+          variant: 'destructive',
         });
         return false;
       }
-      
-      // Save the API key to localStorage
-      saveApiKey(`${platform}_api_key`, key);
-      console.log(`Saved API key for ${platform}`);
-      
-      // For platforms requiring secret keys
-      if (secret && (platform === "binance" || platform === "binance_testnet")) {
-        if (!secret || secret.trim() === "") {
-          toast({
-            title: t("خطأ", "Error"),
-            description: t(
-              "يجب إدخال المفتاح السري",
-              "Secret key cannot be empty"
-            ),
-            variant: "destructive",
-          });
-          return false;
-        }
-        
-        saveApiKey(`${platform}_api_secret`, secret);
-      }
-      
-      setKeysSaved(true);
-      
-      toast({
-        title: t("تم حفظ المفتاح", "API Key Saved"),
-        description: t(
-          `تم حفظ مفتاح API لـ ${platform} بنجاح`,
-          `${platform} API key saved successfully`
-        ),
-      });
-      
-      return true;
-    } catch (error) {
-      console.error(`Error saving ${platform} API key:`, error);
-      toast({
-        title: t("خطأ في الحفظ", "Save Error"),
-        description: t(
-          `حدث خطأ أثناء حفظ مفتاح API لـ ${platform}`,
-          `An error occurred while saving the ${platform} API key`
-        ),
-        variant: "destructive",
-      });
-      
-      return false;
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, [t, toast, handleApiError]);
+
+  /**
+   * الحصول على مفتاح API للمنصة المحددة
+   */
+  const getApiKey = useCallback((platform: string): string | null => {
+    // إذا كان المفتاح مخزنًا بشكل آمن، فإننا لا نستطيع استرداد قيمته الفعلية
+    // في هذه الحالة، سنستخدم النسخة المخزنة محليًا إذا كانت متوفرة
+    if (apiKeys[platform] === 'STORED_SECURELY') {
+      return getApiKeyLocally(`${platform}_api_key`);
+    }
+    
+    return apiKeys[platform] || null;
+  }, [apiKeys]);
+
+  /**
+   * التحقق مما إذا كان لدى المستخدم مفتاح API مخزن للمنصة المحددة
+   */
+  const hasApiKey = useCallback((platform: string): boolean => {
+    return !!apiKeys[platform] || !!getApiKeyLocally(`${platform}_api_key`);
+  }, [apiKeys]);
 
   return {
     apiKeys,
-    setApiKeys,
-    apiSecret,
-    setApiSecret,
-    keysSaved,
-    saveApiKeyToStorage
+    isLoading,
+    storeApiKey,
+    getApiKey,
+    hasApiKey,
+    refreshApiKeys: loadSavedApiKeys
   };
-};
+}

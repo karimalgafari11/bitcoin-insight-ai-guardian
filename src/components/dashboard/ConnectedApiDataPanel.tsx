@@ -1,28 +1,73 @@
 
-import React from "react";
+/**
+ * مكون لعرض البيانات من منصات API المتصلة
+ * يعرض بيانات من مختلف المنصات المتصلة في بطاقات منفصلة مع
+ * خيار تحديث البيانات يدوياً وآلية تحديثات في الوقت الحقيقي
+ * 
+ * تم تحسين هذا المكون باستخدام معالجة أخطاء أفضل وتنظيم الكود بشكل
+ * أكثر كفاءة مع إضافة دعم التحديثات في الوقت الحقيقي
+ */
+
+import React, { useMemo, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, CircleAlertIcon, CheckCircle, AlertCircle, Info, ArrowRight } from "lucide-react";
+import { 
+  RefreshCw, CircleAlertIcon, CheckCircle, AlertCircle, Info, ArrowRight,
+  Radio, RadioOff
+} from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useConnectedApiData } from "@/hooks/useConnectedApiData";
 import { format } from "date-fns";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Switch } from "@/components/ui/switch";
+import { useErrorHandler } from "@/utils/errorHandling";
 
 /**
  * مكون لعرض البيانات من منصات API المتصلة
- * يعرض بيانات من مختلف المنصات المتصلة في بطاقات منفصلة مع
- * خيار تحديث البيانات يدوياً
  */
-const ConnectedApiDataPanel = () => {
+const ConnectedApiDataPanel: React.FC = () => {
   const { t } = useLanguage();
-  const { apiData, isLoading, lastRefreshed, refreshData } = useConnectedApiData();
+  const { showError } = useErrorHandler();
+  const { 
+    apiData, 
+    isLoading, 
+    lastRefreshed, 
+    refreshData, 
+    toggleRealTimeUpdates 
+  } = useConnectedApiData();
+  
+  // حالة تفعيل التحديثات المباشرة
+  const [realtimeEnabled, setRealtimeEnabled] = useState<boolean>(true);
+
+  // تبديل وضع التحديثات المباشرة
+  const handleToggleRealtime = (enabled: boolean) => {
+    setRealtimeEnabled(enabled);
+    toggleRealTimeUpdates(enabled);
+  };
 
   // حساب عدد المنصات المتصلة
   const connectedCount = apiData.filter(item => item.isConnected).length;
   
   // حساب عدد المنصات التي بها أخطاء
   const errorCount = apiData.filter(item => item.error).length;
+
+  // تحديث البيانات يدويًا
+  const handleRefresh = async () => {
+    try {
+      await refreshData();
+    } catch (error) {
+      showError({
+        message: t(
+          'فشل تحديث البيانات، يرجى المحاولة مرة أخرى',
+          'Failed to refresh data, please try again'
+        ),
+        severity: 'error',
+        source: 'api-data-panel',
+        details: error
+      });
+    }
+  };
 
   /**
    * تنسيق عرض البيانات بناءً على نوع المنصة
@@ -159,6 +204,14 @@ const ConnectedApiDataPanel = () => {
     }
   };
 
+  // تنظيم قائمة API حسب الحالة
+  const organizedApiData = useMemo(() => {
+    const working = apiData.filter(item => item.isConnected && !item.error);
+    const withErrors = apiData.filter(item => item.error);
+    
+    return [...working, ...withErrors];
+  }, [apiData]);
+
   return (
     <Card className="border-none shadow-md">
       <CardHeader className="pb-2">
@@ -177,22 +230,42 @@ const ConnectedApiDataPanel = () => {
               )}
             </CardDescription>
           </div>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={refreshData}
-            title={t('تحديث البيانات', 'Refresh data')}
-            disabled={isLoading}
-            className="relative"
-          >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            {errorCount > 0 && (
-              <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+          <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 mr-4">
+              <Switch
+                checked={realtimeEnabled}
+                onCheckedChange={handleToggleRealtime}
+                aria-label={t(
+                  'تبديل التحديثات المباشرة',
+                  'Toggle live updates'
+                )}
+              />
+              <span className="text-sm font-medium flex items-center">
+                {realtimeEnabled ? (
+                  <Radio className="h-3 w-3 text-green-500 mr-1 animate-pulse" />
+                ) : (
+                  <RadioOff className="h-3 w-3 text-gray-400 mr-1" />
+                )}
+                {t('مباشر', 'Live')}
               </span>
-            )}
-          </Button>
+            </div>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleRefresh}
+              title={t('تحديث البيانات', 'Refresh data')}
+              disabled={isLoading}
+              className="relative"
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              {errorCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                </span>
+              )}
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -206,7 +279,7 @@ const ConnectedApiDataPanel = () => {
               </div>
             ))}
           </div>
-        ) : apiData.length === 0 ? (
+        ) : organizedApiData.length === 0 ? (
           // حالة عدم وجود اتصالات نشطة
           <div className="py-8 text-center">
             <CircleAlertIcon className="mx-auto h-12 w-12 text-muted-foreground mb-3" />
@@ -245,7 +318,7 @@ const ConnectedApiDataPanel = () => {
               </Alert>
             )}
             
-            {apiData.map((item, index) => (
+            {organizedApiData.map((item, index) => (
               <div 
                 key={index} 
                 className={`border rounded-md p-4 ${item.error ? 'border-amber-200 bg-amber-50 dark:bg-amber-900/20' : ''}`}
@@ -275,6 +348,11 @@ const ConnectedApiDataPanel = () => {
             
             <p className="text-xs text-muted-foreground text-right mt-4">
               {t('آخر تحديث', 'Last updated')}: {format(lastRefreshed, 'HH:mm:ss')}
+              {realtimeEnabled && (
+                <span className="ml-2 text-green-500">
+                  ({t('التحديثات المباشرة مفعلة', 'Live updates enabled')})
+                </span>
+              )}
             </p>
           </div>
         )}
