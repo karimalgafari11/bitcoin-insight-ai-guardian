@@ -36,6 +36,18 @@ const ApiKeyInput = ({
 }: ApiKeyInputProps) => {
   const { t } = useLanguage();
 
+  const handleSave = (e: React.MouseEvent) => {
+    e.preventDefault();
+    onSave();
+  };
+  
+  const handleTest = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (testConnection) {
+      testConnection();
+    }
+  };
+
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between mb-2">
@@ -48,7 +60,7 @@ const ApiKeyInput = ({
       <div className="flex flex-col gap-2">
         <Input
           id={id}
-          value={value}
+          value={value || ""}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           type="password"
@@ -57,7 +69,7 @@ const ApiKeyInput = ({
         {secretField && onSecretChange && (
           <Input
             id={`${id}-secret`}
-            value={secretValue}
+            value={secretValue || ""}
             onChange={(e) => onSecretChange(e.target.value)}
             placeholder={`Enter your ${label} Secret key`}
             type="password"
@@ -66,7 +78,7 @@ const ApiKeyInput = ({
         
         <div className="flex gap-2">
           <Button
-            onClick={onSave}
+            onClick={handleSave}
             className="flex-1"
           >
             {t("حفظ", "Save")}
@@ -75,7 +87,7 @@ const ApiKeyInput = ({
           {testConnection && (
             <Button
               variant="outline"
-              onClick={testConnection}
+              onClick={handleTest}
               className="flex-1"
             >
               {t("اختبار الاتصال", "Test Connection")}

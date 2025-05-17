@@ -31,6 +31,10 @@ const TradingPlatformTab = ({ apiKeys, setApiKeys }: TradingPlatformTabProps) =>
     testConnection
   } = useApiKeys();
 
+  const handleApiKeyChange = (platform: string, value: string) => {
+    setApiKeys(prev => ({ ...prev, [platform]: value }));
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -58,13 +62,13 @@ const TradingPlatformTab = ({ apiKeys, setApiKeys }: TradingPlatformTabProps) =>
             id="binance-api"
             label="Binance API Key"
             icon={<Server className="mr-2 h-4 w-4" />}
-            value={apiKeys.binance}
-            onChange={(value) => setApiKeys({ ...apiKeys, binance: value })}
+            value={apiKeys.binance || ""}
+            onChange={(value) => handleApiKeyChange("binance", value)}
             onSave={() => handleSaveApiKey("binance")}
             secretField={true}
             secretValue={apiSecret}
             onSecretChange={setApiSecret}
-            testConnection={() => testConnection("binance")}
+            testConnection={testBinanceConnection}
             isConnected={connectedToBinance}
           />
 
@@ -72,8 +76,8 @@ const TradingPlatformTab = ({ apiKeys, setApiKeys }: TradingPlatformTabProps) =>
             id="binance-testnet-api"
             label="Binance Testnet API Key"
             icon={<Network className="mr-2 h-4 w-4" />}
-            value={apiKeys.binance_testnet}
-            onChange={(value) => setApiKeys({ ...apiKeys, binance_testnet: value })}
+            value={apiKeys.binance_testnet || ""}
+            onChange={(value) => handleApiKeyChange("binance_testnet", value)}
             onSave={() => handleSaveApiKey("binance_testnet")}
             secretField={true}
             secretValue={apiSecret}
@@ -85,8 +89,8 @@ const TradingPlatformTab = ({ apiKeys, setApiKeys }: TradingPlatformTabProps) =>
             id="coinapi"
             label="CoinAPI Key"
             icon={<Zap className="mr-2 h-4 w-4" />}
-            value={apiKeys.coinapi}
-            onChange={(value) => setApiKeys({ ...apiKeys, coinapi: value })}
+            value={apiKeys.coinapi || ""}
+            onChange={(value) => handleApiKeyChange("coinapi", value)}
             onSave={() => handleSaveApiKey("coinapi")}
             testConnection={() => testConnection("coinapi")}
           />
@@ -95,8 +99,8 @@ const TradingPlatformTab = ({ apiKeys, setApiKeys }: TradingPlatformTabProps) =>
             id="coindesk-api"
             label="CoinDesk API Key"
             icon={<Globe className="mr-2 h-4 w-4" />}
-            value={apiKeys.coindesk}
-            onChange={(value) => setApiKeys({ ...apiKeys, coindesk: value })}
+            value={apiKeys.coindesk || ""}
+            onChange={(value) => handleApiKeyChange("coindesk", value)}
             onSave={() => handleSaveApiKey("coindesk")}
             testConnection={() => testConnection("coindesk")}
           />
@@ -105,8 +109,8 @@ const TradingPlatformTab = ({ apiKeys, setApiKeys }: TradingPlatformTabProps) =>
             id="cryptocompare-api"
             label="CryptoCompare API Key"
             icon={<BarChart2 className="mr-2 h-4 w-4" />}
-            value={apiKeys.cryptocompare}
-            onChange={(value) => setApiKeys({ ...apiKeys, cryptocompare: value })}
+            value={apiKeys.cryptocompare || ""}
+            onChange={(value) => handleApiKeyChange("cryptocompare", value)}
             onSave={() => handleSaveApiKey("cryptocompare")}
             testConnection={() => testConnection("cryptocompare")}
           />
@@ -115,8 +119,8 @@ const TradingPlatformTab = ({ apiKeys, setApiKeys }: TradingPlatformTabProps) =>
             id="livecoinwatch-api"
             label="LiveCoinWatch API Key"
             icon={<LineChart className="mr-2 h-4 w-4" />}
-            value={apiKeys.livecoinwatch}
-            onChange={(value) => setApiKeys({ ...apiKeys, livecoinwatch: value })}
+            value={apiKeys.livecoinwatch || ""}
+            onChange={(value) => handleApiKeyChange("livecoinwatch", value)}
             onSave={() => handleSaveApiKey("livecoinwatch")}
             testConnection={() => testConnection("livecoinwatch")}
           />
@@ -125,8 +129,8 @@ const TradingPlatformTab = ({ apiKeys, setApiKeys }: TradingPlatformTabProps) =>
             id="tradingview-api"
             label="TradingView API Key"
             icon={<BarChartHorizontal className="mr-2 h-4 w-4" />}
-            value={apiKeys.tradingview}
-            onChange={(value) => setApiKeys({ ...apiKeys, tradingview: value })}
+            value={apiKeys.tradingview || ""}
+            onChange={(value) => handleApiKeyChange("tradingview", value)}
             onSave={() => handleSaveApiKey("tradingview")}
           />
 
@@ -134,8 +138,8 @@ const TradingPlatformTab = ({ apiKeys, setApiKeys }: TradingPlatformTabProps) =>
             id="metatrader-api"
             label="MetaTrader API Key"
             icon={<CloudCog className="mr-2 h-4 w-4" />}
-            value={apiKeys.metatrader}
-            onChange={(value) => setApiKeys({ ...apiKeys, metatrader: value })}
+            value={apiKeys.metatrader || ""}
+            onChange={(value) => handleApiKeyChange("metatrader", value)}
             onSave={() => handleSaveApiKey("metatrader")}
           />
         </div>

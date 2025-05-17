@@ -5,17 +5,36 @@
 
 // Save API key to localStorage
 export const saveApiKey = (key: string, value: string): void => {
-  localStorage.setItem(key, value);
+  if (!key || !value) {
+    console.error("Cannot save empty key or value");
+    return;
+  }
+  try {
+    localStorage.setItem(key, value);
+    console.log(`API key ${key} saved successfully`);
+  } catch (error) {
+    console.error("Error saving API key:", error);
+  }
 };
 
 // Get API key from localStorage
 export const getApiKey = (key: string): string | null => {
-  return localStorage.getItem(key);
+  try {
+    return localStorage.getItem(key);
+  } catch (error) {
+    console.error("Error getting API key:", error);
+    return null;
+  }
 };
 
 // Test Binance connection with provided API key
 export const testBinanceConnection = async (apiKey: string): Promise<boolean> => {
   try {
+    if (!apiKey) {
+      console.error("Cannot test connection with empty API key");
+      return false;
+    }
+    
     const response = await fetch("https://api.binance.com/api/v3/ping", {
       method: "GET",
       headers: {
@@ -33,8 +52,15 @@ export const testBinanceConnection = async (apiKey: string): Promise<boolean> =>
 // Test connection for other API platforms
 export const testApiConnection = async (platform: string, apiKey: string): Promise<boolean> => {
   try {
+    if (!apiKey) {
+      console.error(`Cannot test connection for ${platform} with empty API key`);
+      return false;
+    }
+    
     let endpoint = "";
     let headers: Record<string, string> = {};
+    let method: string = "GET";
+    let body: string | undefined = undefined;
     
     switch (platform) {
       case "binance_testnet":
@@ -63,6 +89,8 @@ export const testApiConnection = async (platform: string, apiKey: string): Promi
           "content-type": "application/json",
           "x-api-key": apiKey 
         };
+        method = "POST";
+        body = JSON.stringify({});
         break;
         
       default:
@@ -72,10 +100,9 @@ export const testApiConnection = async (platform: string, apiKey: string): Promi
     
     // Make the test request
     const response = await fetch(endpoint, {
-      method: platform === "livecoinwatch" ? "POST" : "GET",
+      method,
       headers,
-      // LiveCoinWatch requires a body for even simple requests
-      body: platform === "livecoinwatch" ? JSON.stringify({}) : undefined
+      body
     });
     
     return response.ok;
