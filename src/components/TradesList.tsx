@@ -84,14 +84,14 @@ export const TradesList = ({ trades, onTradeDeleted }: TradesListProps) => {
   };
 
   // تحديد لون الربح/الخسارة
-  const getProfitLossColor = (value: number | undefined) => {
-    if (value === undefined) return "text-muted-foreground";
+  const getProfitLossColor = (value: number | null | undefined) => {
+    if (value === undefined || value === null) return "text-muted-foreground";
     return value >= 0 ? "text-green-500" : "text-red-500";
   };
 
   // تنسيق الربح/الخسارة للعرض
-  const formatProfitLoss = (value: number | undefined) => {
-    if (value === undefined) return "-";
+  const formatProfitLoss = (value: number | null | undefined) => {
+    if (value === undefined || value === null) return "-";
     return `${value >= 0 ? "+" : ""}${value.toFixed(2)}`;
   };
 
