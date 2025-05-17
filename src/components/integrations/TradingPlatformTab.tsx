@@ -12,26 +12,31 @@ import {
 import { Button } from "@/components/ui/button";
 import { ArrowRight, BarChartHorizontal, CloudCog, Globe, Server, AlertTriangle, CheckCircle, Zap, Layers, LineChart, Network, BarChart2 } from "lucide-react";
 import ApiKeyInput from "./ApiKeyInput";
-import { useApiKeys } from "@/hooks/api-keys";
 
 interface TradingPlatformTabProps {
   apiKeys: Record<string, string>;
   setApiKeys: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  apiSecret: string;
+  setApiSecret: React.Dispatch<React.SetStateAction<string>>;
+  keysSaved: boolean;
+  connectionStates: Record<string, boolean>;
+  loadingStates: Record<string, boolean>;
+  handleSaveApiKey: (platform: string) => boolean;
+  testConnection: (platform: string) => Promise<boolean>;
 }
 
-const TradingPlatformTab = ({ apiKeys, setApiKeys }: TradingPlatformTabProps) => {
+const TradingPlatformTab = ({ 
+  apiKeys, 
+  setApiKeys,
+  apiSecret,
+  setApiSecret,
+  keysSaved,
+  connectionStates,
+  loadingStates,
+  handleSaveApiKey,
+  testConnection
+}: TradingPlatformTabProps) => {
   const { t } = useLanguage();
-  const {
-    apiSecret,
-    setApiSecret,
-    keysSaved,
-    connectedToBinance,
-    connectionStates,
-    loadingStates,
-    handleSaveApiKey,
-    testBinanceConnection,
-    testConnection
-  } = useApiKeys();
 
   const handleApiKeyChange = (platform: string, value: string) => {
     setApiKeys(prev => ({ ...prev, [platform]: value }));
@@ -43,7 +48,7 @@ const TradingPlatformTab = ({ apiKeys, setApiKeys }: TradingPlatformTabProps) =>
         <div className="flex items-center justify-between">
           <CardTitle>{t("منصات التداول", "Trading Platforms")}</CardTitle>
           {keysSaved ? (
-            connectedToBinance ? (
+            connectionStates?.binance ? (
               <CheckCircle className="text-green-500" />
             ) : (
               <AlertTriangle className="text-amber-500" />
@@ -70,7 +75,7 @@ const TradingPlatformTab = ({ apiKeys, setApiKeys }: TradingPlatformTabProps) =>
             secretField={true}
             secretValue={apiSecret}
             onSecretChange={setApiSecret}
-            testConnection={testBinanceConnection}
+            testConnection={() => testConnection("binance")}
             isConnected={connectionStates?.binance}
             isLoading={loadingStates?.binance}
           />

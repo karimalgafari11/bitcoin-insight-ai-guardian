@@ -24,7 +24,7 @@ export const useApiKeyValidation = () => {
       return false;
     }
 
-    // Check if secret is required and empty
+    // Check if secret is required and empty for Binance platforms
     if ((platform === "binance" || platform === "binance_testnet") && (!secret || secret.trim() === "")) {
       toast({
         title: t("خطأ", "Error"),

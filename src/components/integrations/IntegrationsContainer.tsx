@@ -9,6 +9,13 @@ import { AdvancedSettingsTab } from "./AdvancedSettingsTab";
 interface IntegrationsContainerProps {
   apiKeys: Record<string, string>;
   setApiKeys: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  apiSecret: string;
+  setApiSecret: React.Dispatch<React.SetStateAction<string>>;
+  keysSaved: boolean;
+  connectionStates: Record<string, boolean>;
+  loadingStates: Record<string, boolean>;
+  handleSaveApiKey: (platform: string) => boolean;
+  testConnection: (platform: string) => Promise<boolean>;
   socialConnections: Record<string, boolean>;
   setSocialConnections: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
   webhookUrl: string;
@@ -18,6 +25,13 @@ interface IntegrationsContainerProps {
 const IntegrationsContainer = ({
   apiKeys,
   setApiKeys,
+  apiSecret,
+  setApiSecret,
+  keysSaved,
+  connectionStates,
+  loadingStates,
+  handleSaveApiKey,
+  testConnection,
   socialConnections,
   setSocialConnections,
   webhookUrl,
@@ -34,7 +48,17 @@ const IntegrationsContainer = ({
       </TabsList>
       
       <TabsContent value="trading" className="mt-0">
-        <TradingPlatformTab apiKeys={apiKeys} setApiKeys={setApiKeys} />
+        <TradingPlatformTab 
+          apiKeys={apiKeys} 
+          setApiKeys={setApiKeys}
+          apiSecret={apiSecret}
+          setApiSecret={setApiSecret}
+          keysSaved={keysSaved}
+          connectionStates={connectionStates}
+          loadingStates={loadingStates}
+          handleSaveApiKey={handleSaveApiKey}
+          testConnection={testConnection}
+        />
       </TabsContent>
       
       <TabsContent value="social" className="mt-0">

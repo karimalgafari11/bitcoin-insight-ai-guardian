@@ -21,7 +21,8 @@ export const saveApiKey = (key: string, value: string): void => {
 // Get API key from localStorage
 export const getApiKey = (key: string): string | null => {
   try {
-    return localStorage.getItem(key);
+    const value = localStorage.getItem(key);
+    return value;
   } catch (error) {
     console.error("Error getting API key:", error);
     return null;

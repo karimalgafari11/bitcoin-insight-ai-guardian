@@ -20,6 +20,11 @@ export const useConnectionTesting = (apiKeys: Record<string, string>) => {
 
   const setConnectionStateForPlatform = (platform: string, isConnected: boolean) => {
     setConnectionStates(prev => ({ ...prev, [platform]: isConnected }));
+    
+    // Also update Binance state for compatibility
+    if (platform === "binance") {
+      setConnectedToBinance(isConnected);
+    }
   };
 
   const testBinanceConnectionHandler = useCallback(async () => {
@@ -99,7 +104,7 @@ export const useConnectionTesting = (apiKeys: Record<string, string>) => {
         return false;
       }
       
-      // For Binance, we already have a specific test function
+      // For Binance, we use the specific test function
       if (platform === "binance") {
         return testBinanceConnectionHandler();
       }

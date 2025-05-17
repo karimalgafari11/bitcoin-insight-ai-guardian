@@ -1,24 +1,35 @@
 
-import React, { useState } from "react";
+import React from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 
-// Import our newly created components
+// Import our components
 import PopularIntegrationsList from "@/components/integrations/PopularIntegrationsList";
 import IntegrationsContainer from "@/components/integrations/IntegrationsContainer";
 import HelpCard from "@/components/integrations/HelpCard";
 
+// Import the useApiKeys hook
+import { useApiKeys } from "@/hooks/api-keys";
+
 const Integrations = () => {
   const { t } = useLanguage();
-  const [apiKeys, setApiKeys] = useState({
-    binance: "",
-    tradingview: "",
-    metatrader: "",
-    coinbase: "",
-    ftx: "",
-  });
-  const [socialConnections, setSocialConnections] = useState({
+  
+  // Use the apiKeys hook directly instead of managing state locally
+  const {
+    apiKeys,
+    setApiKeys,
+    apiSecret,
+    setApiSecret,
+    keysSaved,
+    connectionStates,
+    loadingStates,
+    handleSaveApiKey,
+    testConnection
+  } = useApiKeys();
+  
+  // Only maintain state for social connections and webhook URL
+  const [socialConnections, setSocialConnections] = React.useState({
     telegram: false,
     twitter: false,
     instagram: false,
@@ -26,7 +37,7 @@ const Integrations = () => {
     discord: false,
     slack: false,
   });
-  const [webhookUrl, setWebhookUrl] = useState("");
+  const [webhookUrl, setWebhookUrl] = React.useState("");
   
   return (
     <div className="min-h-screen flex w-full">
@@ -48,6 +59,13 @@ const Integrations = () => {
           <IntegrationsContainer 
             apiKeys={apiKeys}
             setApiKeys={setApiKeys}
+            apiSecret={apiSecret}
+            setApiSecret={setApiSecret}
+            keysSaved={keysSaved}
+            connectionStates={connectionStates}
+            loadingStates={loadingStates}
+            handleSaveApiKey={handleSaveApiKey}
+            testConnection={testConnection}
             socialConnections={socialConnections}
             setSocialConnections={setSocialConnections}
             webhookUrl={webhookUrl}
