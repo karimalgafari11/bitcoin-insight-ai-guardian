@@ -90,6 +90,7 @@ export const useConnectedApiData = () => {
 
   // Helper functions to fetch data from different platforms
   const fetchBinanceData = async (platform: string, apiKey: string): Promise<any> => {
+    // Use testnet endpoint for binance_testnet
     const endpoint = platform === 'binance' 
       ? 'https://api.binance.com/api/v3/ticker/24hr?symbols=["BTCUSDT","ETHUSDT","BNBUSDT","ADAUSDT","SOLUSDT"]' 
       : 'https://testnet.binance.vision/api/v3/ticker/24hr?symbols=["BTCUSDT","ETHUSDT","BNBUSDT"]';
@@ -163,7 +164,7 @@ export const useConnectedApiData = () => {
   // Initial data fetch on component mount
   useEffect(() => {
     fetchConnectedApiData();
-  }, []);
+  }, [connectionStates]); // Added connectionStates as a dependency to refetch when connections change
 
   return {
     apiData,

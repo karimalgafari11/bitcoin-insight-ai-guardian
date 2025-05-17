@@ -15,9 +15,11 @@ import { Button } from "@/components/ui/button";
 import { RefreshCw, CheckCircle } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import ConnectedApiDataPanel from "@/components/dashboard/ConnectedApiDataPanel";
+import { useApiKeys } from "@/hooks/api-keys";
 
 const Dashboard = () => {
   const { t } = useLanguage();
+  const { connectionStates } = useApiKeys();
   const [currentTimeframe, setCurrentTimeframe] = useState<"4h" | "1d" | "1w" | "1m">("1d");
   const [refreshKey, setRefreshKey] = useState(0);
   const [hasBinanceKey, setHasBinanceKey] = useState(true);
@@ -29,21 +31,33 @@ const Dashboard = () => {
   const lastRefreshTimeRef = useRef<number>(Date.now());
   const initialRenderRef = useRef(true);
 
-  // Check for Binance API keys on component mount only
+  // Check for API connections on component mount
   useEffect(() => {
     if (initialRenderRef.current) {
       initialRenderRef.current = false;
       
-      // Show toast that we're now using Binance data for everything
-      toast({
-        title: t("بيانات بينانس", "Binance Data"),
-        description: t(
-          "تم توحيد مصدر البيانات لاستخدام بينانس كمصدر رئيسي للبيانات الحية.",
-          "Data source has been unified to use Binance as the primary source for live data."
-        ),
-      });
+      // Check if we have connected APIs
+      const hasConnectedApis = Object.values(connectionStates).some(state => state);
+      
+      if (hasConnectedApis) {
+        toast({
+          title: t("منصات متصلة", "Connected Platforms"),
+          description: t(
+            "تم العثور على منصات متصلة. يمكنك مشاهدة البيانات منها في لوحة المعلومات.",
+            "Connected platforms found. You can view their data on the dashboard."
+          ),
+        });
+      } else {
+        toast({
+          title: t("بيانات بينانس", "Binance Data"),
+          description: t(
+            "تم توحيد مصدر البيانات لاستخدام بينانس كمصدر رئيسي للبيانات الحية.",
+            "Data source has been unified to use Binance as the primary source for live data."
+          ),
+        });
+      }
     }
-  }, [t]);
+  }, [t, connectionStates]);
 
   // Reset refresh count periodically
   useEffect(() => {
@@ -125,7 +139,9 @@ const Dashboard = () => {
             <div className="flex items-center gap-4">
               <Badge variant="outline" className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 flex items-center gap-1">
                 <CheckCircle className="h-3 w-3" />
-                {t("بيانات بينانس مباشرة", "Live Binance Data")}
+                {connectionStates.binance_testnet 
+                  ? t("بيانات تستنت بينانس", "Binance Testnet Data") 
+                  : t("بيانات بينانس مباشرة", "Live Binance Data")}
               </Badge>
               <Button 
                 variant="outline" 
@@ -141,7 +157,7 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* New Connected API Data Panel */}
+          {/* Connected API Data Panel - Highlight prominence */}
           <div className="mb-6">
             <ConnectedApiDataPanel />
           </div>

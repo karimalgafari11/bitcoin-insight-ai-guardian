@@ -113,3 +113,20 @@ export const testApiConnection = async (platform: string, apiKey: string): Promi
     return false;
   }
 };
+
+// Initialize API keys for Binance Testnet and LiveCoinWatch 
+// (this will run once when the service is imported)
+try {
+  // Binance Testnet
+  if (!localStorage.getItem('binance_testnet_api_key')) {
+    localStorage.setItem('binance_testnet_api_key', 'MZHFuqNOHvWKnOzkHW40wnSMZnGt5uBKf52MGlaS56KxhPRlvtMpaPKLskbugXo6');
+    localStorage.setItem('binance_testnet_api_secret', 'EeNklW8QSleR9kREtZSlHoHpSggCSqZKpZ2Gu9COb6toKFuCpXLmXgguxOABlS7w');
+  }
+  
+  // LiveCoinWatch
+  if (!localStorage.getItem('livecoinwatch_api_key')) {
+    localStorage.setItem('livecoinwatch_api_key', 'e0905662-5ee1-485d-bba6-bfc643ce0d3a');
+  }
+} catch (error) {
+  console.error("Error initializing API keys:", error);
+}

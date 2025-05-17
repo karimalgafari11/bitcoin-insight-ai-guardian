@@ -24,6 +24,11 @@ const ConnectedApiDataPanel = () => {
         case 'binance_testnet':
           return (
             <div className="space-y-2">
+              <p className="text-xs text-muted-foreground mb-1">
+                {platform === 'binance_testnet' ? 
+                  t('بيانات من تست نت بينانس', 'Data from Binance Testnet') : 
+                  t('بيانات من بينانس', 'Data from Binance')}
+              </p>
               {Array.isArray(data) && data.slice(0, 3).map((item: any, index: number) => (
                 <div key={index} className="flex justify-between">
                   <span>{item.symbol}</span>
@@ -60,6 +65,9 @@ const ConnectedApiDataPanel = () => {
         case 'livecoinwatch':
           return (
             <div className="space-y-2">
+              <p className="text-xs text-muted-foreground mb-1">
+                {t('بيانات من لايف كوين ووتش', 'Data from LiveCoinWatch')}
+              </p>
               <div className="flex justify-between">
                 <span>BTC</span>
                 <span className="font-mono">${data.rate?.toFixed(2)}</span>
@@ -144,7 +152,8 @@ const ConnectedApiDataPanel = () => {
                 <div className="flex justify-between items-center mb-2">
                   <h3 className="font-medium flex items-center gap-2">
                     {item.isConnected && <CheckCircle className="h-4 w-4 text-green-500" />}
-                    {item.platform.charAt(0).toUpperCase() + item.platform.slice(1).replace('_', ' ')}
+                    {item.platform === 'binance_testnet' ? 'Binance Testnet' : 
+                      item.platform.charAt(0).toUpperCase() + item.platform.slice(1).replace('_', ' ')}
                   </h3>
                 </div>
                 
