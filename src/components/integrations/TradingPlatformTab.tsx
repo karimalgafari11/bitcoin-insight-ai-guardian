@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ArrowRight, BarChartHorizontal, CloudCog, Globe, Server, AlertTriangle, CheckCircle, Zap, Layers, LineChart, Network, BarChart2 } from "lucide-react";
 import ApiKeyInput from "./ApiKeyInput";
-import { useApiKeys } from "@/hooks/useApiKeys";
+import { useApiKeys } from "@/hooks/api-keys";
 
 interface TradingPlatformTabProps {
   apiKeys: Record<string, string>;
