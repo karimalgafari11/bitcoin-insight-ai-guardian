@@ -1,42 +1,63 @@
 
 /**
- * Service to handle API key operations
+ * خدمة للتعامل مع عمليات مفاتيح API
+ * توفر وظائف لحفظ واسترجاع واختبار مفاتيح API
  */
 
-// Save API key to localStorage
+/**
+ * حفظ مفتاح API في التخزين المحلي
+ * 
+ * @param key - المعرّف الفريد لمفتاح API (مثل 'binance', 'coinapi')
+ * @param value - قيمة مفتاح API
+ * @throws {Error} عند الفشل في حفظ المفتاح
+ */
 export const saveApiKey = (key: string, value: string): void => {
+  // التحقق من صحة المدخلات
   if (!key || !value) {
-    console.error("Cannot save empty key or value");
-    return;
+    console.error("لا يمكن حفظ مفتاح أو قيمة فارغة");
+    throw new Error("مفتاح API أو القيمة لا يمكن أن تكون فارغة");
   }
+  
   try {
     localStorage.setItem(key, value);
-    console.log(`API key ${key} saved successfully`);
+    console.log(`تم حفظ مفتاح API ${key} بنجاح`);
   } catch (error) {
-    console.error("Error saving API key:", error);
-    throw new Error(`Failed to save API key: ${error}`);
+    console.error("خطأ في حفظ مفتاح API:", error);
+    throw new Error(`فشل حفظ مفتاح API: ${error}`);
   }
 };
 
-// Get API key from localStorage
+/**
+ * استرجاع مفتاح API من التخزين المحلي
+ * 
+ * @param key - المعرّف الفريد لمفتاح API
+ * @returns قيمة المفتاح أو null إذا لم يتم العثور عليه
+ */
 export const getApiKey = (key: string): string | null => {
   try {
     const value = localStorage.getItem(key);
     return value;
   } catch (error) {
-    console.error("Error getting API key:", error);
+    console.error("خطأ في استرجاع مفتاح API:", error);
     return null;
   }
 };
 
-// Test Binance connection with provided API key
+/**
+ * اختبار اتصال بينانس باستخدام مفتاح API المقدم
+ * 
+ * @param apiKey - مفتاح API بينانس للاختبار
+ * @returns {Promise<boolean>} نجاح أو فشل الاتصال
+ */
 export const testBinanceConnection = async (apiKey: string): Promise<boolean> => {
+  // التحقق من وجود مفتاح API
+  if (!apiKey) {
+    console.error("لا يمكن اختبار الاتصال بدون مفتاح API");
+    return false;
+  }
+  
   try {
-    if (!apiKey) {
-      console.error("Cannot test connection with empty API key");
-      return false;
-    }
-    
+    // استخدام نقطة نهاية ping البسيطة لاختبار الاتصال
     const response = await fetch("https://api.binance.com/api/v3/ping", {
       method: "GET",
       headers: {
@@ -46,24 +67,34 @@ export const testBinanceConnection = async (apiKey: string): Promise<boolean> =>
     
     return response.ok;
   } catch (error) {
-    console.error("Error testing Binance connection:", error);
+    console.error("خطأ في اختبار اتصال بينانس:", error);
     return false;
   }
 };
 
-// Test connection for other API platforms
+/**
+ * اختبار اتصال API لمنصات مختلفة
+ * يحدد تلقائيًا نقطة النهاية والرؤوس المناسبة بناءً على المنصة
+ * 
+ * @param platform - اسم المنصة ('binance_testnet', 'coinapi', إلخ)
+ * @param apiKey - مفتاح API للاختبار
+ * @returns {Promise<boolean>} نجاح أو فشل الاتصال
+ */
 export const testApiConnection = async (platform: string, apiKey: string): Promise<boolean> => {
+  // التحقق من وجود مفتاح API (باستثناء coindesk التي لا تتطلب مفتاح)
+  if (!apiKey && platform !== 'coindesk') {
+    console.error(`لا يمكن اختبار اتصال ${platform} بدون مفتاح API`);
+    return false;
+  }
+  
   try {
-    if (!apiKey) {
-      console.error(`Cannot test connection for ${platform} with empty API key`);
-      return false;
-    }
-    
+    // تكوين معلمات الطلب بناءً على المنصة
     let endpoint = "";
     let headers: Record<string, string> = {};
     let method: string = "GET";
     let body: string | undefined = undefined;
     
+    // تعيين تكوين مخصص لكل منصة
     switch (platform) {
       case "binance_testnet":
         endpoint = "https://testnet.binance.vision/api/v3/ping";
@@ -76,7 +107,7 @@ export const testApiConnection = async (platform: string, apiKey: string): Promi
         break;
         
       case "coindesk":
-        // CoinDesk doesn't require API key for their public price endpoint
+        // CoinDesk لا تتطلب مفتاح API لنقطة نهاية السعر العامة
         endpoint = "https://api.coindesk.com/v1/bpi/currentprice.json";
         break;
         
@@ -96,11 +127,11 @@ export const testApiConnection = async (platform: string, apiKey: string): Promi
         break;
         
       default:
-        console.warn(`No endpoint configured for platform: ${platform}`);
+        console.warn(`لم يتم تكوين نقطة نهاية للمنصة: ${platform}`);
         return false;
     }
     
-    // Make the test request
+    // إجراء طلب الاختبار
     const response = await fetch(endpoint, {
       method,
       headers,
@@ -109,13 +140,15 @@ export const testApiConnection = async (platform: string, apiKey: string): Promi
     
     return response.ok;
   } catch (error) {
-    console.error(`Error testing ${platform} connection:`, error);
+    console.error(`خطأ في اختبار اتصال ${platform}:`, error);
     return false;
   }
 };
 
-// Initialize API keys for Binance Testnet and LiveCoinWatch 
-// (this will run once when the service is imported)
+/**
+ * تهيئة مفاتيح API لـ Binance Testnet و LiveCoinWatch
+ * (سيتم تشغيل هذا مرة واحدة عندما يتم استيراد الخدمة)
+ */
 try {
   // Binance Testnet
   if (!localStorage.getItem('binance_testnet_api_key')) {
@@ -128,5 +161,5 @@ try {
     localStorage.setItem('livecoinwatch_api_key', 'e0905662-5ee1-485d-bba6-bfc643ce0d3a');
   }
 } catch (error) {
-  console.error("Error initializing API keys:", error);
+  console.error("خطأ في تهيئة مفاتيح API:", error);
 }
