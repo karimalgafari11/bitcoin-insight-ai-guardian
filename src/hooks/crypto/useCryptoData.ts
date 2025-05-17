@@ -1,19 +1,19 @@
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { toast } from '@/components/ui/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { CryptoMarketData, UseCryptoDataResult } from '@/types/crypto';
 import { fetchCryptoData, preloadCommonCryptoData } from '@/utils/crypto/fetcher';
+
+// Import our modularized hooks
 import { useCryptoDataTimers } from './useCryptoDataTimers';
 import { useCryptoDataRefresh } from './useCryptoDataRefresh';
-import { useCryptoRealtimeChannel } from './useCryptoRealtimeChannel';
+import { useCryptoRealtimeUpdates } from './useCryptoRealtimeUpdates';
 import { useCryptoPolling } from './useCryptoPolling';
-import { useCryptoDataFetch } from './useCryptoDataFetch';
+import { useCryptoDataFetching } from './useCryptoDataFetching';
+import { useInstanceTracking } from './useInstanceTracking';
 import { setupRealtimeChannel, cleanupChannel } from '@/utils/crypto/cryptoRealtimeChannel';
 import { cleanupStaleCache } from '@/utils/crypto/fetcher/cache';
-
-// Track mounted instances to optimize network requests more efficiently
-const mountedInstances = new Map<string, number>();
 
 export function useCryptoData(
   coinId: string = 'bitcoin',
@@ -29,20 +29,21 @@ export function useCryptoData(
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   
+  // Use our custom hook for mounting/unmounting tracking
+  const { mountedRef, instanceId, trackInstance, cleanupInstance } = useInstanceTracking(coinId, days, currency);
+  
   // Enhanced refs to better track component state and prevent memory leaks
-  const mountedRef = useRef<boolean>(true);
   const lastFetchRef = useRef<number>(0);
   const paramsRef = useRef({ coinId, days, currency });
-  const instanceIdRef = useRef<string>(`${coinId}:${days}:${currency}`);
-  const lastDataHashRef = useRef<string>(''); // Track last data hash to prevent unnecessary updates
-  const updateCountRef = useRef<number>(0); // Track number of updates to detect unusual activity
+  const lastDataHashRef = useRef<string>('');
+  const updateCountRef = useRef<number>(0);
   
   // Custom hooks for various functionality
   const { fetchTimerRef, realtimeChannelRef, abortControllerRef } = useCryptoDataTimers();
   const { pollingEnabled, setPollingEnabled, togglePolling } = useCryptoPolling(fetchTimerRef);
   
   // Import and use the data fetching logic with additional safeguards
-  const { fetchCryptoDataCallback } = useCryptoDataFetch({
+  const { fetchCryptoDataCallback } = useCryptoDataFetching({
     coinId,
     days,
     currency,
@@ -50,7 +51,6 @@ export function useCryptoData(
     mountedRef,
     paramsRef,
     abortControllerRef,
-    instanceIdRef,
     lastFetchRef,
     lastDataHashRef,
     setLoading,
@@ -71,56 +71,28 @@ export function useCryptoData(
     t
   });
   
-  // Improved handler for realtime updates
-  const handleRealtimeUpdate = useCallback((payload: any) => {
-    if (!mountedRef.current || !payload.data) return;
-    
-    const updatedData = payload.data;
-    updateCountRef.current++;
-    
-    // Implement rate limiting for realtime updates - no more than 3 updates per minute
-    const now = Date.now();
-    if (updateCountRef.current > 3 && now - lastFetchRef.current < 60000) {
-      console.log('Rate limiting realtime updates - too many too quickly');
-      return;
-    }
-    
-    // Update only if data is different from what we already have
-    const currentHash = lastDataHashRef.current;
-    const newHash = JSON.stringify(updatedData.prices?.[updatedData.prices.length - 1] || '');
-    
-    if (currentHash === newHash && data) {
-      console.log('Skipping update - data has not changed');
-      return;
-    }
-    
-    lastDataHashRef.current = newHash;
-    
-    console.log('Processing realtime update');
-    setData(updatedData);
-    setIsRealtime(true);
-    setDataSource(updatedData.dataSource || "realtime-update");
-    setLastUpdated(payload.updatedAt || new Date().toISOString());
-    lastFetchRef.current = now;
-    
-    // Only show toast for significant data updates, not small changes
-    if (!updatedData.fromCache && updateCountRef.current <= 2) {
-      toast({
-        title: t("تحديث البيانات", "Data Update"),
-        description: t("تم تحديث بيانات العملة الرقمية", "Cryptocurrency data updated"),
-      });
-    }
-  }, [data, lastDataHashRef, lastFetchRef, mountedRef, t]);
+  // Hook for realtime updates
+  const { handleRealtimeUpdate } = useCryptoRealtimeUpdates({
+    mountedRef,
+    data,
+    lastFetchRef,
+    lastDataHashRef,
+    updateCountRef,
+    setData,
+    setIsRealtime,
+    setDataSource,
+    setLastUpdated,
+    t
+  });
   
   // Set up realtime updates and polling with improved stability
   useEffect(() => {
+    // Mark component as mounted
     mountedRef.current = true;
     updateCountRef.current = 0;
-    const instanceId = `${coinId}:${days}:${currency}`;
     
     // Register this instance with reference counting
-    const currentCount = mountedInstances.get(instanceId) || 0;
-    mountedInstances.set(instanceId, currentCount + 1);
+    trackInstance();
     
     // Track if the parameters have changed from what we had before
     const paramsChanged = 
@@ -130,13 +102,9 @@ export function useCryptoData(
     
     // Update params ref
     paramsRef.current = { coinId, days, currency };
-    instanceIdRef.current = instanceId;
-    
-    // Only force refresh if parameters changed or this is the first instance
-    const forceRefresh = paramsChanged || currentCount === 0;
     
     // Always fetch data immediately on mount or when parameters change
-    fetchCryptoDataCallback(forceRefresh);
+    fetchCryptoDataCallback(paramsChanged);
     
     // Clean up any existing channel before setting up a new one
     if (realtimeChannelRef.current) {
@@ -149,7 +117,7 @@ export function useCryptoData(
     realtimeChannelRef.current = channel;
     
     // If this is the first load of this type, preload common data
-    if (currentCount === 0 && coinId === 'bitcoin' && days === '7') {
+    if (coinId === 'bitcoin' && days === '7') {
       // Wait a bit to not compete with initial load
       const preloadTimerId = setTimeout(() => {
         if (mountedRef.current) {
@@ -166,17 +134,12 @@ export function useCryptoData(
       
       // Make sure to clear timers on cleanup
       return () => {
+        // Cleanup on unmount
         mountedRef.current = false;
         clearTimeout(preloadTimerId);
         clearTimeout(cleanupTimerId);
         
-        // Update instance reference counting
-        const updatedCount = mountedInstances.get(instanceId) || 0;
-        if (updatedCount <= 1) {
-          mountedInstances.delete(instanceId);
-        } else {
-          mountedInstances.set(instanceId, updatedCount - 1);
-        }
+        cleanupInstance();
         
         // Clear polling timer
         if (fetchTimerRef.current !== null) {
@@ -202,13 +165,7 @@ export function useCryptoData(
     return () => {
       mountedRef.current = false;
       
-      // Update instance reference counting
-      const updatedCount = mountedInstances.get(instanceId) || 0;
-      if (updatedCount <= 1) {
-        mountedInstances.delete(instanceId);
-      } else {
-        mountedInstances.set(instanceId, updatedCount - 1);
-      }
+      cleanupInstance();
       
       // Clear polling timer
       if (fetchTimerRef.current !== null) {
@@ -228,7 +185,8 @@ export function useCryptoData(
         abortControllerRef.current = null;
       }
     };
-  }, [coinId, days, currency, fetchCryptoDataCallback, handleRealtimeUpdate]);
+  }, [coinId, days, currency, fetchCryptoDataCallback, handleRealtimeUpdate, 
+      trackInstance, cleanupInstance, realtimeChannelRef, fetchTimerRef, abortControllerRef]);
 
   return { 
     data, 
