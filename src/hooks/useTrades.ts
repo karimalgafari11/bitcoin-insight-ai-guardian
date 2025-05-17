@@ -21,46 +21,53 @@ export const useTrades = () => {
       
       if (!authData?.user) {
         // Use mock data if user is not authenticated (for development)
+        const currentDate = new Date();
+        const yesterdayDate = new Date(currentDate.getTime() - 86400000);
+        
         const mockTrades = [
           {
             id: '1',
             user_id: 'mock-user',
             symbol: 'BTC/USD',
-            direction: 'long',
-            entry_date: new Date().toISOString(),
+            direction: 'long' as const,
+            entry_date: currentDate.toISOString(),
             exit_date: null,
-            entry_price: '50000',
+            entry_price: 50000,
             exit_price: null,
-            stop_loss: '48000',
-            take_profit: '55000',
-            size: '0.5',
-            status: 'open',
+            stop_loss: 48000,
+            take_profit: 55000,
+            size: 0.5,
+            status: 'open' as const,
             profit_loss: null,
             strategy: 'Breakout',
             setup_type: 'Trend Following',
             timeframe: '4h',
             notes: 'Test trade',
-            tags: ['test', 'bitcoin']
+            tags: ['test', 'bitcoin'],
+            created_at: currentDate.toISOString(),
+            updated_at: currentDate.toISOString()
           },
           {
             id: '2',
             user_id: 'mock-user',
             symbol: 'ETH/USD',
-            direction: 'short',
-            entry_date: new Date(Date.now() - 86400000).toISOString(),
-            exit_date: new Date().toISOString(),
-            entry_price: '3000',
-            exit_price: '2800',
-            stop_loss: '3100',
-            take_profit: '2700',
-            size: '2',
-            status: 'closed',
+            direction: 'short' as const,
+            entry_date: yesterdayDate.toISOString(),
+            exit_date: currentDate.toISOString(),
+            entry_price: 3000,
+            exit_price: 2800,
+            stop_loss: 3100,
+            take_profit: 2700,
+            size: 2,
+            status: 'closed' as const,
             profit_loss: 400,
             strategy: 'Reversal',
             setup_type: 'Counter Trend',
             timeframe: '1d',
             notes: 'Successful short',
-            tags: ['ethereum', 'reversal']
+            tags: ['ethereum', 'reversal'],
+            created_at: yesterdayDate.toISOString(),
+            updated_at: currentDate.toISOString()
           }
         ] as Trade[];
         
