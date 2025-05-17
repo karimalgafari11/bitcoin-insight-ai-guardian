@@ -14,12 +14,13 @@ import TimeframeSelector from "@/components/TimeframeSelector";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, CheckCircle } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
+import ConnectedApiDataPanel from "@/components/dashboard/ConnectedApiDataPanel";
 
 const Dashboard = () => {
   const { t } = useLanguage();
   const [currentTimeframe, setCurrentTimeframe] = useState<"4h" | "1d" | "1w" | "1m">("1d");
   const [refreshKey, setRefreshKey] = useState(0);
-  const [hasBinanceKey, setHasBinanceKey] = useState(true); // Default to true since we're using Binance as primary source
+  const [hasBinanceKey, setHasBinanceKey] = useState(true);
   
   // Enhanced refs for better tracking refresh behavior
   const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -138,6 +139,11 @@ const Dashboard = () => {
               </Button>
               <SidebarTrigger className="bg-white dark:bg-gray-800 shadow-sm" />
             </div>
+          </div>
+
+          {/* New Connected API Data Panel */}
+          <div className="mb-6">
+            <ConnectedApiDataPanel />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
