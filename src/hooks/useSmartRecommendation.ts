@@ -15,7 +15,13 @@ export interface SmartRecommendation {
   created_at: string;
   timeframe: string;
   is_active: boolean;
+  technical_indicators?: Record<string, number>;
 }
+
+// API Keys for service integration - using the provided keys from props
+const BINANCE_API_KEY = 'khxTWPTHtCMIa9JLD3PtZel206oXBvgiy8GWztOBJYmqFKk5XXuYnpjwQDXioCB3';
+const COINAPI_KEY = '52d3f36d-bdb3-4653-86c3-08284eeeed63';
+const COINDESK_KEY = 'a1767cfd2957079cad70abd9850f473d0d033e55851bfe550c15b74bd83d8eaf';
 
 export function useSmartRecommendation(timeframe: string = '1d') {
   const [recommendation, setRecommendation] = useState<SmartRecommendation | null>(null);
@@ -26,7 +32,7 @@ export function useSmartRecommendation(timeframe: string = '1d') {
   // Get the latest crypto data from our hook that uses Binance data
   const { data: cryptoData, dataSource } = useCryptoData('bitcoin', '1', 'usd');
   
-  // Function to generate a recommendation based on market data
+  // Function to generate a recommendation based on live market data
   const generateRecommendation = useCallback(async () => {
     if (!cryptoData || !cryptoData.prices || cryptoData.prices.length === 0) {
       return;
@@ -63,6 +69,29 @@ export function useSmartRecommendation(timeframe: string = '1d') {
       
       console.log(`Generating recommendation with pattern: ${patternName}, strength: ${patternStrength.toFixed(2)}`);
       
+      // Attempt to fetch additional market data from our new edge function
+      let additionalMarketData = {};
+      try {
+        const marketDataResponse = await fetch(
+          `/api/market-data-live?symbol=BTC&currency=USD&source=binance`
+        );
+        
+        if (marketDataResponse.ok) {
+          const marketDataResult = await marketDataResponse.json();
+          additionalMarketData = {
+            binanceData: marketDataResult,
+            change24h: marketDataResult.change24h,
+            high24h: marketDataResult.high24h,
+            low24h: marketDataResult.low24h
+          };
+          
+          console.log("Additional market data from Binance:", additionalMarketData);
+        }
+      } catch (marketDataError) {
+        console.error("Error fetching additional market data:", marketDataError);
+        // Continue with the recommendation generation even if this fails
+      }
+      
       // Call our serverless function to generate a smart recommendation
       const { data, error } = await supabase.functions.invoke('smart-recommendation', {
         body: {
@@ -70,7 +99,13 @@ export function useSmartRecommendation(timeframe: string = '1d') {
           timeframe,
           pattern_name: patternName,
           pattern_strength: patternStrength,
-          price_levels: priceLevels
+          price_levels: priceLevels,
+          api_keys: {
+            binance: BINANCE_API_KEY,
+            coinapi: COINAPI_KEY,
+            coindesk: COINDESK_KEY
+          },
+          additional_market_data: additionalMarketData
         }
       });
       
@@ -122,6 +157,44 @@ export function useSmartRecommendation(timeframe: string = '1d') {
       generateRecommendation();
     }
   }, [cryptoData, dataSource, generateRecommendation]);
+  
+  // Set up WebSocket connection for real-time Binance data updates
+  useEffect(() => {
+    // Connect to Binance WebSocket API using provided API key
+    const binanceWsUrl = `wss://stream.binance.com:9443/ws/btcusdt@ticker`;
+    
+    const ws = new WebSocket(binanceWsUrl);
+    
+    ws.onopen = () => {
+      console.log("Connected to Binance WebSocket for real-time market updates");
+    };
+    
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        // Only trigger recommendation update when there's significant price change
+        if (Math.abs(parseFloat(data.p)) > 0.5) {
+          console.log("Significant price change detected in WebSocket stream, updating recommendation");
+          generateRecommendation();
+        }
+      } catch (e) {
+        console.error("Error processing WebSocket message:", e);
+      }
+    };
+    
+    ws.onerror = (error) => {
+      console.error("WebSocket error:", error);
+    };
+    
+    ws.onclose = () => {
+      console.log("Disconnected from Binance WebSocket");
+    };
+    
+    // Clean up WebSocket connection
+    return () => {
+      ws.close();
+    };
+  }, [generateRecommendation]);
   
   return { recommendation, loading, error, regenerate: generateRecommendation };
 }
