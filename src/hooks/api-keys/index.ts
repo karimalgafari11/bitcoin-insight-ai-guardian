@@ -25,6 +25,7 @@ export const useApiKeys = () => {
   
   const {
     connectedToBinance,
+    loadingStates,
     testBinanceConnection,
     testConnection
   } = useConnectionTesting(apiKeys);
@@ -58,6 +59,7 @@ export const useApiKeys = () => {
     setApiSecret,
     keysSaved,
     connectedToBinance,
+    loadingStates,
     handleSaveApiKey,
     testBinanceConnection,
     testConnection

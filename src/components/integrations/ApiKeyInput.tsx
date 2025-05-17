@@ -2,7 +2,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Lock } from "lucide-react";
+import { Lock, LoaderCircle } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 interface ApiKeyInputProps {
@@ -18,6 +18,7 @@ interface ApiKeyInputProps {
   onSecretChange?: (value: string) => void;
   testConnection?: () => void;
   isConnected?: boolean;
+  isLoading?: boolean;
 }
 
 const ApiKeyInput = ({
@@ -33,6 +34,7 @@ const ApiKeyInput = ({
   onSecretChange,
   testConnection,
   isConnected,
+  isLoading = false,
 }: ApiKeyInputProps) => {
   const { t } = useLanguage();
 
@@ -89,8 +91,16 @@ const ApiKeyInput = ({
               variant="outline"
               onClick={handleTest}
               className="flex-1"
+              disabled={isLoading}
             >
-              {t("اختبار الاتصال", "Test Connection")}
+              {isLoading ? (
+                <>
+                  <LoaderCircle className="h-4 w-4 mr-2 animate-spin" />
+                  {t("جاري الاختبار...", "Testing...")}
+                </>
+              ) : (
+                t("اختبار الاتصال", "Test Connection")
+              )}
             </Button>
           )}
         </div>

@@ -26,6 +26,7 @@ const TradingPlatformTab = ({ apiKeys, setApiKeys }: TradingPlatformTabProps) =>
     setApiSecret,
     keysSaved,
     connectedToBinance,
+    loadingStates,
     handleSaveApiKey,
     testBinanceConnection,
     testConnection
@@ -70,6 +71,7 @@ const TradingPlatformTab = ({ apiKeys, setApiKeys }: TradingPlatformTabProps) =>
             onSecretChange={setApiSecret}
             testConnection={testBinanceConnection}
             isConnected={connectedToBinance}
+            isLoading={loadingStates?.binance}
           />
 
           <ApiKeyInput
@@ -83,6 +85,7 @@ const TradingPlatformTab = ({ apiKeys, setApiKeys }: TradingPlatformTabProps) =>
             secretValue={apiSecret}
             onSecretChange={setApiSecret}
             testConnection={() => testConnection("binance_testnet")}
+            isLoading={loadingStates?.binance_testnet}
           />
 
           <ApiKeyInput
@@ -93,6 +96,7 @@ const TradingPlatformTab = ({ apiKeys, setApiKeys }: TradingPlatformTabProps) =>
             onChange={(value) => handleApiKeyChange("coinapi", value)}
             onSave={() => handleSaveApiKey("coinapi")}
             testConnection={() => testConnection("coinapi")}
+            isLoading={loadingStates?.coinapi}
           />
 
           <ApiKeyInput
@@ -103,6 +107,7 @@ const TradingPlatformTab = ({ apiKeys, setApiKeys }: TradingPlatformTabProps) =>
             onChange={(value) => handleApiKeyChange("coindesk", value)}
             onSave={() => handleSaveApiKey("coindesk")}
             testConnection={() => testConnection("coindesk")}
+            isLoading={loadingStates?.coindesk}
           />
 
           <ApiKeyInput
@@ -113,6 +118,7 @@ const TradingPlatformTab = ({ apiKeys, setApiKeys }: TradingPlatformTabProps) =>
             onChange={(value) => handleApiKeyChange("cryptocompare", value)}
             onSave={() => handleSaveApiKey("cryptocompare")}
             testConnection={() => testConnection("cryptocompare")}
+            isLoading={loadingStates?.cryptocompare}
           />
 
           <ApiKeyInput
@@ -123,6 +129,7 @@ const TradingPlatformTab = ({ apiKeys, setApiKeys }: TradingPlatformTabProps) =>
             onChange={(value) => handleApiKeyChange("livecoinwatch", value)}
             onSave={() => handleSaveApiKey("livecoinwatch")}
             testConnection={() => testConnection("livecoinwatch")}
+            isLoading={loadingStates?.livecoinwatch}
           />
 
           <ApiKeyInput

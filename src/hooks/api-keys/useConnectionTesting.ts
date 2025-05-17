@@ -11,6 +11,11 @@ export const useConnectionTesting = (apiKeys: Record<string, string>) => {
   const { t } = useLanguage();
   const { toast } = useToast();
   const [connectedToBinance, setConnectedToBinance] = useState(false);
+  const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
+
+  const setLoadingForPlatform = (platform: string, isLoading: boolean) => {
+    setLoadingStates(prev => ({ ...prev, [platform]: isLoading }));
+  };
 
   const testBinanceConnectionHandler = useCallback(async () => {
     try {
@@ -25,6 +30,8 @@ export const useConnectionTesting = (apiKeys: Record<string, string>) => {
         });
         return false;
       }
+      
+      setLoadingForPlatform('binance', true);
       
       const isConnected = await testBinanceConnection(apiKeys.binance);
       
@@ -49,6 +56,7 @@ export const useConnectionTesting = (apiKeys: Record<string, string>) => {
         });
       }
       
+      setLoadingForPlatform('binance', false);
       return isConnected;
     } catch (error) {
       console.error("Error testing Binance connection:", error);
@@ -62,6 +70,7 @@ export const useConnectionTesting = (apiKeys: Record<string, string>) => {
         variant: "destructive",
       });
       
+      setLoadingForPlatform('binance', false);
       return false;
     }
   }, [apiKeys.binance, t, toast]);
@@ -88,6 +97,9 @@ export const useConnectionTesting = (apiKeys: Record<string, string>) => {
         return testBinanceConnectionHandler();
       }
       
+      // Set loading state
+      setLoadingForPlatform(platform, true);
+      
       // Test connection for other platforms
       const isConnected = await testApiConnection(platform, apiKey);
       
@@ -110,6 +122,8 @@ export const useConnectionTesting = (apiKeys: Record<string, string>) => {
         });
       }
       
+      // Clear loading state
+      setLoadingForPlatform(platform, false);
       return isConnected;
     } catch (error) {
       console.error(`Error testing ${platform} connection:`, error);
@@ -122,12 +136,15 @@ export const useConnectionTesting = (apiKeys: Record<string, string>) => {
         variant: "destructive",
       });
       
+      // Clear loading state on error
+      setLoadingForPlatform(platform, false);
       return false;
     }
   }, [apiKeys, t, toast, testBinanceConnectionHandler]);
 
   return {
     connectedToBinance,
+    loadingStates,
     testBinanceConnection: testBinanceConnectionHandler,
     testConnection: testConnectionHandler
   };
