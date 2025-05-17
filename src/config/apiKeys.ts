@@ -33,14 +33,3 @@ export function getApiKey(service: 'binance_api' | 'binance_secret' | 'coinapi' 
       return '';
   }
 }
-
-// Update the Supabase config.toml file to enable the new edge functions
-<lov-write file_path="supabase/config.toml">
-# This is the project configuration file for your Supabase project.
-project_id = "rldsrafveotztbnqgmot"
-
-[functions.smart-recommendation]
-verify_jwt = false
-
-[functions.market-data-live]
-verify_jwt = false
