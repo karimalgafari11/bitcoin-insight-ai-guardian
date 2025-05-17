@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { Edit, Trash2 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/components/ui/use-toast";
 import { Trade } from "@/types/trade";
 
 import {

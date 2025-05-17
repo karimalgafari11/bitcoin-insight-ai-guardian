@@ -17,6 +17,7 @@ import Education from './pages/Education';
 import CandlestickAnalysis from './pages/CandlestickAnalysis';
 import TechnicalPatterns from './pages/TechnicalPatterns';
 import Integrations from './pages/Integrations';
+import TradingEntryForm from './pages/journal/TradingEntryForm';
 
 function App() {
   return (
@@ -27,6 +28,8 @@ function App() {
         <Route path="/auth" element={<Auth />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/trading-journal" element={<TradingJournal />} />
+        <Route path="/trading-journal/new" element={<TradingEntryForm />} />
+        <Route path="/trading-journal/edit/:id" element={<TradingEntryForm />} />
         <Route path="/analysis" element={<Analysis />} />
         <Route path="/news-sentiment" element={<NewsSentiment />} />
         <Route path="/risk-calculator" element={<RiskCalculator />} />

@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { AppSidebar } from "@/components/AppSidebar"; 
@@ -10,7 +10,6 @@ import DashboardChartPanel from "@/components/dashboard/DashboardChartPanel";
 import DashboardNewsPanel from "@/components/dashboard/DashboardNewsPanel";
 import DashboardWatchlistPanel from "@/components/dashboard/DashboardWatchlistPanel";
 import { useNavigate } from "react-router-dom";
-import { useEffect } from "react";
 
 const Index = () => {
   const { t } = useLanguage();

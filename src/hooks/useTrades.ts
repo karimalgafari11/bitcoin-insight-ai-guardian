@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Trade } from "@/types/trade";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/components/ui/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 export const useTrades = () => {
@@ -20,7 +20,51 @@ export const useTrades = () => {
       const { data: authData } = await supabase.auth.getUser();
       
       if (!authData?.user) {
-        setTrades([]);
+        // Use mock data if user is not authenticated (for development)
+        const mockTrades = [
+          {
+            id: '1',
+            user_id: 'mock-user',
+            symbol: 'BTC/USD',
+            direction: 'long',
+            entry_date: new Date().toISOString(),
+            exit_date: null,
+            entry_price: '50000',
+            exit_price: null,
+            stop_loss: '48000',
+            take_profit: '55000',
+            size: '0.5',
+            status: 'open',
+            profit_loss: null,
+            strategy: 'Breakout',
+            setup_type: 'Trend Following',
+            timeframe: '4h',
+            notes: 'Test trade',
+            tags: ['test', 'bitcoin']
+          },
+          {
+            id: '2',
+            user_id: 'mock-user',
+            symbol: 'ETH/USD',
+            direction: 'short',
+            entry_date: new Date(Date.now() - 86400000).toISOString(),
+            exit_date: new Date().toISOString(),
+            entry_price: '3000',
+            exit_price: '2800',
+            stop_loss: '3100',
+            take_profit: '2700',
+            size: '2',
+            status: 'closed',
+            profit_loss: 400,
+            strategy: 'Reversal',
+            setup_type: 'Counter Trend',
+            timeframe: '1d',
+            notes: 'Successful short',
+            tags: ['ethereum', 'reversal']
+          }
+        ] as Trade[];
+        
+        setTrades(mockTrades);
         setLoading(false);
         return;
       }

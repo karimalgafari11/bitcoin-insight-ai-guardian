@@ -1,101 +1,104 @@
 
-import { createContext, useContext, useState } from "react";
-import { Session, User } from "@supabase/supabase-js";
-import { useAuthState } from "@/hooks/useAuthState";
-import { signUp, signIn, signOut, resendEmailConfirmation } from "@/services/authService";
-import EmailConfirmationDialog from "@/components/EmailConfirmationDialog";
-import AuthLoadingState from "@/components/AuthLoadingState";
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { AuthSession, User } from "@supabase/supabase-js";
 
-interface AuthContextType {
-  session: Session | null;
+type AuthContextType = {
   user: User | null;
+  session: AuthSession | null;
   loading: boolean;
-  signUp: (email: string, password: string, username: string) => Promise<void>;
-  signIn: (email: string, password: string) => Promise<void>;
-  signOut: () => Promise<void>; // Changed from logout to signOut
-  resendEmailConfirmation: (email: string) => Promise<void>;
-}
+  signIn: (user: any) => void;
+  signOut: () => void;
+};
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  session: null,
+  loading: true,
+  signIn: () => {},
+  signOut: () => {},
+});
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { session, user, loading } = useAuthState();
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [unconfirmedEmail, setUnconfirmedEmail] = useState("");
-  const [isTransitioning, setIsTransitioning] = useState(false);
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<AuthSession | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const handleSignUp = async (email: string, password: string, username: string) => {
-    try {
-      setIsTransitioning(true);
-      const result = await signUp(email, password, username);
-      setUnconfirmedEmail(result.email);
-      setShowConfirmDialog(true);
-    } catch (error) {
-      // Error is already handled in the service
-    } finally {
-      setIsTransitioning(false);
-    }
-  };
+  useEffect(() => {
+    // Check if there's an active session on mount
+    const getInitialSession = async () => {
+      setLoading(true);
 
-  const handleSignIn = async (email: string, password: string) => {
-    try {
-      setIsTransitioning(true);
-      await signIn(email, password);
-    } catch (error: any) {
-      if (error.message === "يجب تأكيد البريد الإلكتروني أولاً") {
-        setUnconfirmedEmail(email);
-        setShowConfirmDialog(true);
+      try {
+        const { data } = await supabase.auth.getSession();
+        
+        console.info("Auth state changed: INITIAL_SESSION");
+        
+        if (data.session) {
+          setSession(data.session);
+          setUser(data.session.user);
+          console.info("Initial session found:", data.session.user.email);
+        } else {
+          console.info("No initial session");
+        }
+      } catch (error) {
+        console.error("Error getting initial session:", error);
+      } finally {
+        setLoading(false);
       }
-      throw error;
-    } finally {
-      setIsTransitioning(false);
-    }
+    };
+
+    getInitialSession();
+
+    // Set up auth state listener
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (event, newSession) => {
+        console.info("Auth state changed:", event);
+        
+        if (newSession) {
+          setSession(newSession);
+          setUser(newSession.user);
+          console.info("New session:", newSession.user.email);
+        } else {
+          setSession(null);
+          setUser(null);
+          console.info("No session");
+        }
+
+        setLoading(false);
+      }
+    );
+
+    // Cleanup subscription on unmount
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
+  // Simplified signIn for demo purposes
+  const signIn = (userData: any) => {
+    setUser(userData);
   };
 
-  const handleResendEmailConfirmation = async (email: string) => {
-    await resendEmailConfirmation(email);
+  const signOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+      setSession(null);
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
   };
-  
-  // عرض حالة التحميل عند تحميل المصادقة أو أثناء الانتقالات
-  if (loading || isTransitioning) {
-    return <AuthLoadingState />;
-  }
 
   return (
-    <AuthContext.Provider
-      value={{
-        session,
-        user,
-        loading,
-        signUp: handleSignUp,
-        signIn: handleSignIn,
-        signOut: async () => { // Changed from logout to signOut
-          setIsTransitioning(true);
-          try {
-            await signOut();
-          } finally {
-            // حتى لو فشلت عملية الخروج، نريد إنهاء حالة الانتقال
-            setTimeout(() => setIsTransitioning(false), 300);
-          }
-        },
-        resendEmailConfirmation: handleResendEmailConfirmation,
-      }}
-    >
-      <EmailConfirmationDialog
-        email={unconfirmedEmail}
-        isOpen={showConfirmDialog}
-        onClose={() => setShowConfirmDialog(false)}
-        onResend={handleResendEmailConfirmation}
-      />
+    <AuthContext.Provider value={{ user, session, loading, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );
-}
+};
 
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
-}
+export const useAuth = () => {
+  return useContext(AuthContext);
+};
+
+export default AuthContext;
