@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -10,7 +9,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { useCryptoData } from "@/hooks/useCryptoData";
+import { useCryptoData } from "@/hooks/crypto";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2, RefreshCw, Wifi, WifiOff } from "lucide-react";
 import { format } from "date-fns";
