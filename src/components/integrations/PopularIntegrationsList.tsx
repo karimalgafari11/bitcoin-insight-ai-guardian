@@ -4,112 +4,122 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import {
   Card,
   CardContent,
-  CardFooter,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { 
-  MessageSquare, 
-  Server,
-  CloudCog,
-  BarChartHorizontal,
-  CheckCircle 
-} from "lucide-react";
-
-interface IntegrationItem {
-  name: string;
-  description: string;
-  connected: boolean;
-  icon: React.ReactNode;
-}
+import { Badge } from "@/components/ui/badge";
+import { Zap, Check, X, Network, BarChart2, Globe, LineChart } from "lucide-react";
 
 interface PopularIntegrationsListProps {
   apiKeys: Record<string, string>;
   socialConnections: Record<string, boolean>;
 }
 
-const PopularIntegrationsList = ({ apiKeys, socialConnections }: PopularIntegrationsListProps) => {
+const PopularIntegrationsList = ({
+  apiKeys,
+  socialConnections,
+}: PopularIntegrationsListProps) => {
   const { t } = useLanguage();
-
-  const popularIntegrations: IntegrationItem[] = [
+  
+  const integrations = [
     {
       name: "Binance",
-      description: t(
-        "منصة تداول العملات الرقمية الأكثر شعبية",
-        "The most popular cryptocurrency trading platform"
-      ),
-      connected: Boolean(apiKeys.binance),
-      icon: <Server className="h-8 w-8 text-yellow-500" />
+      connected: !!apiKeys.binance,
+      icon: <Zap className="h-4 w-4" />,
+      type: "crypto"
     },
     {
-      name: "TradingView",
-      description: t(
-        "منصة تحليل الرسوم البيانية والتداول الاحترافية",
-        "Professional charting and trading platform"
-      ),
-      connected: Boolean(apiKeys.tradingview),
-      icon: <BarChartHorizontal className="h-8 w-8 text-blue-500" />
+      name: "Binance Testnet",
+      connected: !!apiKeys.binance_testnet,
+      icon: <Network className="h-4 w-4" />,
+      type: "crypto"
+    },
+    {
+      name: "CoinAPI",
+      connected: !!apiKeys.coinapi,
+      icon: <BarChart2 className="h-4 w-4" />,
+      type: "crypto"
+    },
+    {
+      name: "CoinDesk",
+      connected: !!apiKeys.coindesk,
+      icon: <Globe className="h-4 w-4" />,
+      type: "crypto"
+    },
+    {
+      name: "CryptoCompare",
+      connected: !!apiKeys.cryptocompare,
+      icon: <BarChart2 className="h-4 w-4" />,
+      type: "crypto"
+    },
+    {
+      name: "LiveCoinWatch",
+      connected: !!apiKeys.livecoinwatch,
+      icon: <LineChart className="h-4 w-4" />,
+      type: "crypto"
     },
     {
       name: "Telegram",
-      description: t(
-        "منصة المراسلة للتنبيهات وإشارات التداول",
-        "Messaging platform for alerts and trading signals"
-      ),
       connected: socialConnections.telegram,
-      icon: <MessageSquare className="h-8 w-8 text-blue-400" />
+      icon: <Zap className="h-4 w-4" />,
+      type: "social"
     },
     {
-      name: "MetaTrader",
-      description: t(
-        "منصة تداول الفوركس والعقود مقابل الفروقات",
-        "Forex and CFD trading platform"
-      ),
-      connected: Boolean(apiKeys.metatrader),
-      icon: <CloudCog className="h-8 w-8 text-green-500" />
-    },
+      name: "Twitter",
+      connected: socialConnections.twitter,
+      icon: <Zap className="h-4 w-4" />,
+      type: "social"
+    }
   ];
 
   return (
-    <div className="mb-8">
-      <h2 className="text-xl font-medium mb-4">
-        {t("التكاملات الشائعة", "Popular Integrations")}
-      </h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {popularIntegrations.map((integration) => (
-          <Card key={integration.name} className="overflow-hidden transition-all hover:shadow-md">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <div className="flex items-center space-x-2 rtl:space-x-reverse">
+    <Card className="mb-6">
+      <CardHeader>
+        <CardTitle>{t("التكاملات الشائعة", "Popular Integrations")}</CardTitle>
+        <CardDescription>
+          {t(
+            "اتصل بالمنصات المختلفة للحصول على بيانات في الوقت الحقيقي",
+            "Connect to various platforms for real-time data"
+          )}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          {integrations.map((integration) => (
+            <div
+              key={integration.name}
+              className="flex items-center gap-2 rounded-md border p-3"
+            >
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
                 {integration.icon}
-                <CardTitle className="text-base font-semibold">
-                  {integration.name}
-                </CardTitle>
               </div>
-              {integration.connected && (
-                <CheckCircle className="h-5 w-5 text-green-500" />
+              <div className="flex flex-1 flex-col">
+                <span className="text-sm font-medium leading-none">
+                  {integration.name}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {integration.type === "crypto" 
+                    ? t("منصة بيانات", "Data platform") 
+                    : t("منصة اجتماعية", "Social platform")}
+                </span>
+              </div>
+              {integration.connected ? (
+                <Badge className="bg-green-500">
+                  <Check className="mr-1 h-3 w-3" />
+                  {t("متصل", "Connected")}
+                </Badge>
+              ) : (
+                <Badge variant="outline">
+                  <X className="mr-1 h-3 w-3" />
+                  {t("غير متصل", "Not Connected")}
+                </Badge>
               )}
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                {integration.description}
-              </p>
-            </CardContent>
-            <CardFooter className="pt-0">
-              <Button 
-                variant={integration.connected ? "outline" : "default"}
-                className="w-full"
-                size="sm"
-              >
-                {integration.connected 
-                  ? t("تم الاتصال", "Connected") 
-                  : t("اتصال", "Connect")}
-              </Button>
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
-    </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import {
@@ -9,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, BarChartHorizontal, CloudCog, Globe, Server, AlertTriangle, CheckCircle } from "lucide-react";
+import { ArrowRight, BarChartHorizontal, CloudCog, Globe, Server, AlertTriangle, CheckCircle, Zap, Layers, LineChart, Network, BarChart2 } from "lucide-react";
 import ApiKeyInput from "./ApiKeyInput";
 import { useApiKeys } from "@/hooks/useApiKeys";
 
@@ -26,7 +27,8 @@ const TradingPlatformTab = ({ apiKeys, setApiKeys }: TradingPlatformTabProps) =>
     keysSaved,
     connectedToBinance,
     handleSaveApiKey,
-    testBinanceConnection
+    testBinanceConnection,
+    testConnection
   } = useApiKeys();
 
   return (
@@ -62,8 +64,61 @@ const TradingPlatformTab = ({ apiKeys, setApiKeys }: TradingPlatformTabProps) =>
             secretField={true}
             secretValue={apiSecret}
             onSecretChange={setApiSecret}
-            testConnection={testBinanceConnection}
+            testConnection={() => testConnection("binance")}
             isConnected={connectedToBinance}
+          />
+
+          <ApiKeyInput
+            id="binance-testnet-api"
+            label="Binance Testnet API Key"
+            icon={<Network className="mr-2 h-4 w-4" />}
+            value={apiKeys.binance_testnet}
+            onChange={(value) => setApiKeys({ ...apiKeys, binance_testnet: value })}
+            onSave={() => handleSaveApiKey("binance_testnet")}
+            secretField={true}
+            secretValue={apiSecret}
+            onSecretChange={setApiSecret}
+            testConnection={() => testConnection("binance_testnet")}
+          />
+
+          <ApiKeyInput
+            id="coinapi"
+            label="CoinAPI Key"
+            icon={<Zap className="mr-2 h-4 w-4" />}
+            value={apiKeys.coinapi}
+            onChange={(value) => setApiKeys({ ...apiKeys, coinapi: value })}
+            onSave={() => handleSaveApiKey("coinapi")}
+            testConnection={() => testConnection("coinapi")}
+          />
+
+          <ApiKeyInput
+            id="coindesk-api"
+            label="CoinDesk API Key"
+            icon={<Globe className="mr-2 h-4 w-4" />}
+            value={apiKeys.coindesk}
+            onChange={(value) => setApiKeys({ ...apiKeys, coindesk: value })}
+            onSave={() => handleSaveApiKey("coindesk")}
+            testConnection={() => testConnection("coindesk")}
+          />
+
+          <ApiKeyInput
+            id="cryptocompare-api"
+            label="CryptoCompare API Key"
+            icon={<BarChart2 className="mr-2 h-4 w-4" />}
+            value={apiKeys.cryptocompare}
+            onChange={(value) => setApiKeys({ ...apiKeys, cryptocompare: value })}
+            onSave={() => handleSaveApiKey("cryptocompare")}
+            testConnection={() => testConnection("cryptocompare")}
+          />
+
+          <ApiKeyInput
+            id="livecoinwatch-api"
+            label="LiveCoinWatch API Key"
+            icon={<LineChart className="mr-2 h-4 w-4" />}
+            value={apiKeys.livecoinwatch}
+            onChange={(value) => setApiKeys({ ...apiKeys, livecoinwatch: value })}
+            onSave={() => handleSaveApiKey("livecoinwatch")}
+            testConnection={() => testConnection("livecoinwatch")}
           />
 
           <ApiKeyInput
@@ -82,15 +137,6 @@ const TradingPlatformTab = ({ apiKeys, setApiKeys }: TradingPlatformTabProps) =>
             value={apiKeys.metatrader}
             onChange={(value) => setApiKeys({ ...apiKeys, metatrader: value })}
             onSave={() => handleSaveApiKey("metatrader")}
-          />
-
-          <ApiKeyInput
-            id="coinbase-api"
-            label="Coinbase API Key"
-            icon={<Globe className="mr-2 h-4 w-4" />}
-            value={apiKeys.coinbase}
-            onChange={(value) => setApiKeys({ ...apiKeys, coinbase: value })}
-            onSave={() => handleSaveApiKey("coinbase")}
           />
         </div>
       </CardContent>

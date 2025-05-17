@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { saveApiKey, getApiKey, testBinanceConnection } from "@/services/apiKeyService";
+import { saveApiKey, getApiKey, testBinanceConnection, testApiConnection } from "@/services/apiKeyService";
 
 interface ApiKeyHookResult {
   apiKeys: Record<string, string>;
@@ -13,6 +13,7 @@ interface ApiKeyHookResult {
   connectedToBinance: boolean;
   handleSaveApiKey: (platform: string) => void;
   testBinanceConnection: () => Promise<void>;
+  testConnection: (platform: string) => Promise<void>;
 }
 
 export const useApiKeys = (): ApiKeyHookResult => {
@@ -35,6 +36,22 @@ export const useApiKeys = (): ApiKeyHookResult => {
     if (savedBinanceSecret) {
       setApiSecret(savedBinanceSecret);
     }
+
+    // Load other API keys
+    const platforms = [
+      "binance_testnet", "coinapi", "coindesk", 
+      "cryptocompare", "livecoinwatch", "tradingview", "metatrader"
+    ];
+    
+    const savedKeys: Record<string, string> = {};
+    platforms.forEach(platform => {
+      const key = getApiKey(`${platform}_api_key`);
+      if (key) {
+        savedKeys[platform] = key;
+      }
+    });
+    
+    setApiKeys(prev => ({ ...prev, ...savedKeys }));
   }, []);
   
   // Set default API keys if none are set
@@ -62,7 +79,7 @@ export const useApiKeys = (): ApiKeyHookResult => {
     }
   }, [t, toast, apiKeys.binance]);
 
-  const handleSaveApiKey = (platform: keyof typeof apiKeys) => {
+  const handleSaveApiKey = (platform: string) => {
     if (!apiKeys[platform]) {
       toast({
         title: t("خطأ", "Error"),
@@ -75,7 +92,7 @@ export const useApiKeys = (): ApiKeyHookResult => {
       return;
     }
 
-    if (platform === "binance" && !apiSecret) {
+    if ((platform === "binance" || platform === "binance_testnet") && !apiSecret) {
       toast({
         title: t("خطأ", "Error"),
         description: t(
@@ -87,14 +104,16 @@ export const useApiKeys = (): ApiKeyHookResult => {
       return;
     }
 
-    // For Binance, save both key and secret to localStorage
-    if (platform === "binance") {
-      saveApiKey("binance_api_key", apiKeys.binance);
-      saveApiKey("binance_api_secret", apiSecret);
+    // Save the API key to localStorage
+    saveApiKey(`${platform}_api_key`, apiKeys[platform]);
+    
+    // For platforms requiring secret keys
+    if (platform === "binance" || platform === "binance_testnet") {
+      saveApiKey(`${platform}_api_secret`, apiSecret);
       setKeysSaved(true);
       
-      // Test the connection to Binance
-      testBinanceConnectionHandler();
+      // Test the connection
+      testConnectionHandler(platform);
     }
     
     toast({
@@ -145,6 +164,62 @@ export const useApiKeys = (): ApiKeyHookResult => {
     }
   };
 
+  const testConnectionHandler = async (platform: string) => {
+    try {
+      // Get the appropriate API key
+      const apiKey = apiKeys[platform];
+      
+      if (!apiKey) {
+        toast({
+          title: t("خطأ", "Error"),
+          description: t(
+            "يرجى إدخال مفتاح API أولاً",
+            "Please enter an API key first"
+          ),
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // For Binance, we already have a specific test function
+      if (platform === "binance") {
+        return testBinanceConnectionHandler();
+      }
+      
+      // Test connection for other platforms
+      const isConnected = await testApiConnection(platform, apiKey);
+      
+      if (isConnected) {
+        toast({
+          title: t("تم الاتصال بنجاح", "Connected Successfully"),
+          description: t(
+            `تم الاتصال بـ ${platform} بنجاح`,
+            `Successfully connected to ${platform}`
+          ),
+        });
+      } else {
+        toast({
+          title: t("فشل الاتصال", "Connection Failed"),
+          description: t(
+            `فشل الاتصال بـ ${platform}، يرجى التحقق من المفاتيح`,
+            `Failed to connect to ${platform}, please check your keys`
+          ),
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error(`Error testing ${platform} connection:`, error);
+      toast({
+        title: t("خطأ", "Error"),
+        description: t(
+          `حدث خطأ أثناء الاتصال بـ ${platform}`,
+          `An error occurred while connecting to ${platform}`
+        ),
+        variant: "destructive",
+      });
+    }
+  };
+
   return {
     apiKeys,
     setApiKeys,
@@ -153,6 +228,7 @@ export const useApiKeys = (): ApiKeyHookResult => {
     keysSaved,
     connectedToBinance,
     handleSaveApiKey,
-    testBinanceConnection: testBinanceConnectionHandler
+    testBinanceConnection: testBinanceConnectionHandler,
+    testConnection: testConnectionHandler
   };
 };
