@@ -12,9 +12,14 @@ export const useConnectionTesting = (apiKeys: Record<string, string>) => {
   const { toast } = useToast();
   const [connectedToBinance, setConnectedToBinance] = useState(false);
   const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
+  const [connectionStates, setConnectionStates] = useState<Record<string, boolean>>({});
 
   const setLoadingForPlatform = (platform: string, isLoading: boolean) => {
     setLoadingStates(prev => ({ ...prev, [platform]: isLoading }));
+  };
+
+  const setConnectionStateForPlatform = (platform: string, isConnected: boolean) => {
+    setConnectionStates(prev => ({ ...prev, [platform]: isConnected }));
   };
 
   const testBinanceConnectionHandler = useCallback(async () => {
@@ -36,6 +41,7 @@ export const useConnectionTesting = (apiKeys: Record<string, string>) => {
       const isConnected = await testBinanceConnection(apiKeys.binance);
       
       setConnectedToBinance(isConnected);
+      setConnectionStateForPlatform('binance', isConnected);
       
       if (isConnected) {
         toast({
@@ -61,6 +67,7 @@ export const useConnectionTesting = (apiKeys: Record<string, string>) => {
     } catch (error) {
       console.error("Error testing Binance connection:", error);
       setConnectedToBinance(false);
+      setConnectionStateForPlatform('binance', false);
       toast({
         title: t("خطأ", "Error"),
         description: t(
@@ -103,6 +110,9 @@ export const useConnectionTesting = (apiKeys: Record<string, string>) => {
       // Test connection for other platforms
       const isConnected = await testApiConnection(platform, apiKey);
       
+      // Update connection state
+      setConnectionStateForPlatform(platform, isConnected);
+      
       if (isConnected) {
         toast({
           title: t("تم الاتصال بنجاح", "Connected Successfully"),
@@ -127,6 +137,7 @@ export const useConnectionTesting = (apiKeys: Record<string, string>) => {
       return isConnected;
     } catch (error) {
       console.error(`Error testing ${platform} connection:`, error);
+      setConnectionStateForPlatform(platform, false);
       toast({
         title: t("خطأ", "Error"),
         description: t(
@@ -144,6 +155,7 @@ export const useConnectionTesting = (apiKeys: Record<string, string>) => {
 
   return {
     connectedToBinance,
+    connectionStates,
     loadingStates,
     testBinanceConnection: testBinanceConnectionHandler,
     testConnection: testConnectionHandler

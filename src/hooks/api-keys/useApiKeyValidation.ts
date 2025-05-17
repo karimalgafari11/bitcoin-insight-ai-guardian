@@ -11,7 +11,8 @@ export const useApiKeyValidation = () => {
   const { toast } = useToast();
 
   const validateApiKey = useCallback((platform: string, key: string, secret?: string) => {
-    if (!key) {
+    // Check if key is empty
+    if (!key || key.trim() === "") {
       toast({
         title: t("خطأ", "Error"),
         description: t(
@@ -23,11 +24,12 @@ export const useApiKeyValidation = () => {
       return false;
     }
 
-    if ((platform === "binance" || platform === "binance_testnet") && !secret) {
+    // Check if secret is required and empty
+    if ((platform === "binance" || platform === "binance_testnet") && (!secret || secret.trim() === "")) {
       toast({
         title: t("خطأ", "Error"),
         description: t(
-          "يرجى إدخال مفتاح السري أيضاً",
+          "يرجى إدخال المفتاح السري أيضاً",
           "Please enter the Secret key as well"
         ),
         variant: "destructive",

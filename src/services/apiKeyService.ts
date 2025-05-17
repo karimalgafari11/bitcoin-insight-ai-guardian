@@ -14,6 +14,7 @@ export const saveApiKey = (key: string, value: string): void => {
     console.log(`API key ${key} saved successfully`);
   } catch (error) {
     console.error("Error saving API key:", error);
+    throw new Error(`Failed to save API key: ${error}`);
   }
 };
 

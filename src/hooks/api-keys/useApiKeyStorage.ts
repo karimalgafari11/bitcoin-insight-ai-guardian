@@ -38,12 +38,19 @@ export const useApiKeyStorage = () => {
         ];
         
         const savedKeys: Record<string, string> = {};
+        let hasKeys = false;
+        
         platforms.forEach(platform => {
           const key = getApiKey(`${platform}_api_key`);
           if (key) {
             savedKeys[platform] = key;
+            hasKeys = true;
           }
         });
+        
+        if (hasKeys) {
+          setKeysSaved(true);
+        }
         
         // Merge with existing keys
         setApiKeys(prev => ({ ...prev, ...savedKeys }));
@@ -57,11 +64,36 @@ export const useApiKeyStorage = () => {
 
   const saveApiKeyToStorage = (platform: string, key: string, secret?: string) => {
     try {
+      if (!key || key.trim() === "") {
+        toast({
+          title: t("خطأ", "Error"),
+          description: t(
+            `يجب إدخال مفتاح API لـ ${platform}`,
+            `API key for ${platform} cannot be empty`
+          ),
+          variant: "destructive",
+        });
+        return false;
+      }
+      
       // Save the API key to localStorage
       saveApiKey(`${platform}_api_key`, key);
+      console.log(`Saved API key for ${platform}`);
       
       // For platforms requiring secret keys
       if (secret && (platform === "binance" || platform === "binance_testnet")) {
+        if (!secret || secret.trim() === "") {
+          toast({
+            title: t("خطأ", "Error"),
+            description: t(
+              "يجب إدخال المفتاح السري",
+              "Secret key cannot be empty"
+            ),
+            variant: "destructive",
+          });
+          return false;
+        }
+        
         saveApiKey(`${platform}_api_secret`, secret);
       }
       

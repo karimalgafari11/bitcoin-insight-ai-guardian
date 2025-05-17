@@ -50,6 +50,13 @@ const ApiKeyInput = ({
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      onSave();
+      e.preventDefault();
+    }
+  };
+
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between mb-2">
@@ -66,6 +73,7 @@ const ApiKeyInput = ({
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           type="password"
+          onKeyDown={handleKeyDown}
         />
         
         {secretField && onSecretChange && (
@@ -75,6 +83,7 @@ const ApiKeyInput = ({
             onChange={(e) => onSecretChange(e.target.value)}
             placeholder={`Enter your ${label} Secret key`}
             type="password"
+            onKeyDown={handleKeyDown}
           />
         )}
         
